@@ -3,6 +3,7 @@ import { NextResponse } from "next/server"
 
 // Routes that don't require authentication
 const publicPaths = [
+  "/",
   "/login",
   "/api/auth",
   "/invite",
