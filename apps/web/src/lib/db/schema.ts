@@ -18,6 +18,8 @@ export const users = pgTable("users", {
   avatarUrl: text("avatar_url"),
   image: text("image"),
   emailVerified: timestamp("email_verified", { mode: "date" }),
+  apiKey: text("api_key"), // user's AI provider API key (BYOK)
+  apiKeyProvider: text("api_key_provider"), // "openai" | "anthropic"
   createdAt: timestamp("created_at").defaultNow(),
 })
 
