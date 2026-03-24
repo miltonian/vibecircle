@@ -58,7 +58,7 @@ export function PluginSetup({ circles }: PluginSetupProps) {
   }, [])
 
   const configJson = JSON.stringify({
-    apiUrl: "https://web-mauve-two-91.vercel.app",
+    apiUrl: "https://vibecircle.dev",
     authToken: token ?? "vc_...",
     circleId: selectedCircleId || "",
     autoShare: true,

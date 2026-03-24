@@ -12,7 +12,7 @@ const fs = require("fs");
 const path = require("path");
 const { execFileSync } = require("child_process");
 
-const API_URL = "https://web-mauve-two-91.vercel.app";
+const API_URL = "https://vibecircle.dev";
 
 /** Get the config directory */
 function getDataDir() {
@@ -52,13 +52,13 @@ async function main() {
     if (!res.ok) {
       const text = await res.text().catch(() => "");
       process.stderr.write(`Failed to create device code: ${res.status} ${text}\n`);
-      process.stdout.write("Try setting up manually: open https://web-mauve-two-91.vercel.app/setup/plugin\n");
+      process.stdout.write("Try setting up manually: open https://vibecircle.dev/setup/plugin\n");
       process.exit(0);
     }
     codeData = await res.json();
   } catch (err) {
     process.stderr.write(`Network error: ${err.message}\n`);
-    process.stdout.write("Try setting up manually: open https://web-mauve-two-91.vercel.app/setup/plugin\n");
+    process.stdout.write("Try setting up manually: open https://vibecircle.dev/setup/plugin\n");
     process.exit(0);
   }
 

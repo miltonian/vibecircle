@@ -91,4 +91,4 @@ Tell the user:
 After the script finishes, run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/lib/config.js check`
 
 - If output starts with "configured", tell the user: "You're all set! Your plugin is connected to vibecircle."
-- If output starts with "not-configured", tell the user: "Hmm, something went wrong. You can try again with `/circle setup`, or set up manually at https://web-mauve-two-91.vercel.app/setup/plugin"
+- If output starts with "not-configured", tell the user: "Hmm, something went wrong. You can try again with `/circle setup`, or set up manually at https://vibecircle.dev/setup/plugin"

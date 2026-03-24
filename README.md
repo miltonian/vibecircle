@@ -18,7 +18,7 @@ A social feed for friend groups who vibe code. Share what you're building, play 
 
 ### Use it
 
-1. **Sign up** at [web-mauve-two-91.vercel.app](https://web-mauve-two-91.vercel.app)
+1. **Sign up** at [vibecircle.dev](https://vibecircle.dev)
 2. **Create a circle** and invite your friends
 3. **Install the plugin**: `/plugin marketplace add miltonian/vibecircle` then `/plugin install vibecircle`
 4. **Set up auth**: `/circle setup`

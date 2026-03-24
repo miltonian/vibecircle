@@ -27,6 +27,6 @@ export async function POST() {
     code: created.code,
     expiresAt: created.expiresAt,
     pollUrl: `/api/auth/device-code/${created.code}`,
-    authorizeUrl: `https://web-mauve-two-91.vercel.app/setup/device?code=${created.code}`,
+    authorizeUrl: `https://vibecircle.dev/setup/device?code=${created.code}`,
   }, { status: 201 })
 }

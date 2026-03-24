@@ -41,7 +41,7 @@ export async function GET(
       status: "authorized",
       token: device.token,
       circleId: device.circleId,
-      apiUrl: "https://web-mauve-two-91.vercel.app",
+      apiUrl: "https://vibecircle.dev",
     })
   }
 
