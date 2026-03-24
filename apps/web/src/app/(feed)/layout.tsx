@@ -10,12 +10,13 @@ export default function FeedLayout({
       {/* Ambient glow blobs */}
       <div className="ambient-glow ambient-glow--green" />
       <div className="ambient-glow ambient-glow--cyan" />
+      <div className="ambient-glow ambient-glow--purple" />
 
       {/* Sticky top bar with presence */}
       <TopBarWrapper />
 
-      {/* Main content */}
-      <main className="relative z-10 mx-auto max-w-2xl px-4 py-6">
+      {/* Main content — 620px centered for feed readability */}
+      <main className="relative z-10 mx-auto px-4 py-8" style={{ maxWidth: 620 }}>
         {children}
       </main>
     </div>

@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth"
-import { getCircleById, getCircleMembers } from "@/lib/db/queries"
+import { getCircleById } from "@/lib/db/queries"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { FeedView } from "@/components/feed/feed-view"
@@ -38,61 +38,10 @@ export default async function CircleFeedPage({
     )
   }
 
-  const members = await getCircleMembers(circleId)
-
   return (
     <div>
-      {/* Circle header */}
-      <div className="mb-6 rounded-[20px] border border-border-subtle bg-bg-card p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="font-heading text-2xl font-bold text-text-primary">
-              {circle.name}
-            </h1>
-            <p className="mt-1 text-sm text-text-muted">
-              {members.length} {members.length === 1 ? "member" : "members"}
-            </p>
-          </div>
-
-          {/* Member avatars */}
-          <div className="flex -space-x-2">
-            {members.slice(0, 5).map((member) => (
-              <div
-                key={member.userId}
-                className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-bg-card bg-bg-elevated text-xs font-medium text-text-secondary"
-                title={member.name || member.email}
-              >
-                {member.image ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={member.image}
-                    alt={member.name || ""}
-                    className="h-full w-full rounded-full object-cover"
-                  />
-                ) : (
-                  (member.name?.[0] || member.email[0]).toUpperCase()
-                )}
-              </div>
-            ))}
-            {members.length > 5 && (
-              <div className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-bg-card bg-bg-elevated text-xs font-medium text-text-muted">
-                +{members.length - 5}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Invite code */}
-        <div className="mt-4 flex items-center gap-2 rounded-xl border border-border-dim bg-bg-base/50 px-3 py-2">
-          <span className="text-xs text-text-muted">Invite link:</span>
-          <code className="flex-1 truncate font-code text-xs text-text-secondary">
-            /invite/{circle.inviteCode}
-          </code>
-        </div>
-      </div>
-
       {/* Feed */}
-      <FeedView circleId={circleId} />
+      <FeedView circleId={circleId} userId={session.user.id} />
     </div>
   )
 }

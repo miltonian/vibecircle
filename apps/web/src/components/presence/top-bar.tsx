@@ -29,9 +29,9 @@ export function TopBar({ circleName, circleId }: TopBarProps) {
 
   return (
     <>
-      {/* Sticky header */}
-      <header className="sticky top-0 z-50 border-b border-[rgba(255,255,255,0.04)] bg-[rgba(5,5,5,0.8)] backdrop-blur-[24px]">
-        <div className="mx-auto flex h-14 max-w-2xl items-center justify-between px-4">
+      {/* Sticky frosted glass header */}
+      <header className="glass sticky top-0 z-50 border-b border-[rgba(255,255,255,0.04)]">
+        <div className="mx-auto flex h-14 items-center justify-between px-4" style={{ maxWidth: 620 }}>
           {/* Left: Logo */}
           <Link href="/" className="flex items-center">
             <span className="font-heading text-xl font-extrabold tracking-tight">

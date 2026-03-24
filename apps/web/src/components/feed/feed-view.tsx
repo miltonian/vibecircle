@@ -6,9 +6,10 @@ import { CreatePostDialog } from "./create-post-dialog"
 
 interface FeedViewProps {
   circleId: string
+  userId?: string
 }
 
-export function FeedView({ circleId }: FeedViewProps) {
+export function FeedView({ circleId, userId }: FeedViewProps) {
   const { data, error, isLoading, mutate } = useFeed(circleId)
 
   const posts = data?.posts ?? []
@@ -37,7 +38,7 @@ export function FeedView({ circleId }: FeedViewProps) {
       ) : (
         <div className="space-y-4">
           {posts.map((post, i) => (
-            <PostCard key={post.id} post={post} index={i} />
+            <PostCard key={post.id} post={post} index={i} userId={userId} />
           ))}
         </div>
       )}

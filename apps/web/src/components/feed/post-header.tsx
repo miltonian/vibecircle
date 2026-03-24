@@ -21,11 +21,11 @@ function timeAgo(dateStr: string): string {
 /** Pick a consistent gradient for an author based on their name */
 function avatarGradient(name: string): string {
   const gradients = [
-    "from-[#00ff88] to-[#00ccff]",
-    "from-[#a855f7] to-[#ff0066]",
-    "from-[#fbbf24] to-[#ff0066]",
-    "from-[#00ccff] to-[#a855f7]",
-    "from-[#00ff88] to-[#a855f7]",
+    "linear-gradient(135deg, #00ff88, #00ccff)",
+    "linear-gradient(135deg, #a855f7, #ff0066)",
+    "linear-gradient(135deg, #fbbf24, #ff0066)",
+    "linear-gradient(135deg, #00ccff, #a855f7)",
+    "linear-gradient(135deg, #00ff88, #a855f7)",
   ]
   let hash = 0
   for (let i = 0; i < name.length; i++) {
@@ -72,37 +72,41 @@ interface PostHeaderProps {
 export function PostHeader({ post }: PostHeaderProps) {
   const { author, createdAt, type, metadata } = post
   const badge = typeBadgeConfig[type] ?? typeBadgeConfig.ambient
+  const gradient = avatarGradient(author.name ?? "?")
 
   return (
     <div className="flex items-center justify-between gap-3">
       {/* Left: Avatar + Author info */}
       <div className="flex items-center gap-3 min-w-0">
-        {/* Avatar */}
+        {/* Avatar with gradient ring */}
         <div className="relative shrink-0">
-          {author.avatarUrl ? (
-            <img
-              src={author.avatarUrl}
-              alt={author.name ?? ""}
-              className="h-[38px] w-[38px] rounded-full object-cover ring-2 ring-border-subtle"
-            />
-          ) : (
-            <div
-              className={`flex h-[38px] w-[38px] items-center justify-center rounded-full bg-gradient-to-br ${avatarGradient(
-                author.name ?? "?"
-              )} text-sm font-bold text-black`}
-            >
-              {(author.name?.[0] ?? "?").toUpperCase()}
-            </div>
-          )}
+          {/* Outer gradient ring */}
+          <div
+            className="flex h-[42px] w-[42px] items-center justify-center rounded-full p-[2px]"
+            style={{ background: gradient }}
+          >
+            {/* Inner circle */}
+            {author.avatarUrl ? (
+              <img
+                src={author.avatarUrl}
+                alt={author.name ?? ""}
+                className="h-full w-full rounded-full object-cover ring-2 ring-bg-card"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center rounded-full bg-bg-card text-sm font-bold text-text-primary">
+                {(author.name?.[0] ?? "?").toUpperCase()}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Author name + timestamp + tool badge */}
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <span className="truncate font-display text-[14.5px] font-bold text-text-primary">
+            <span className="truncate font-display text-[14.5px] font-bold leading-tight text-text-primary">
               {author.name ?? "Anonymous"}
             </span>
-            <span className="shrink-0 text-xs text-text-muted">
+            <span className="shrink-0 text-[11px] text-text-dim">
               {timeAgo(createdAt)}
             </span>
           </div>
@@ -112,7 +116,7 @@ export function PostHeader({ post }: PostHeaderProps) {
               {metadata.tech_tags.slice(0, 3).map((tag) => (
                 <span
                   key={tag}
-                  className="rounded bg-bg-elevated px-1.5 py-0.5 font-code text-[10px] text-text-muted"
+                  className="rounded bg-[rgba(255,255,255,0.04)] px-1.5 py-0.5 font-code text-[10px] text-text-muted"
                 >
                   {tag}
                 </span>
