@@ -4,8 +4,7 @@
 
 A social feed for friend groups who vibe code. Share what you're building, play with each other's apps, and feel the energy of friends creating together.
 
-<!-- TODO: add screenshot -->
-<!-- ![vibecircle feed](docs/screenshot.png) -->
+![vibecircle feed](docs/screenshot-feed.jpg)
 
 ## Features
 
