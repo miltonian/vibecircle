@@ -1,4 +1,4 @@
-import { eq, and, desc, lt, gt, sql, count } from "drizzle-orm"
+import { eq, and, desc, lt, sql, count } from "drizzle-orm"
 import { db } from "."
 import { circles, circleMembers, users, posts, reactions, comments, presence } from "./schema"
 import type { NewPost } from "./schema"

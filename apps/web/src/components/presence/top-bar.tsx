@@ -1,0 +1,88 @@
+"use client"
+
+import Link from "next/link"
+import { usePresence } from "@/hooks/use-presence"
+import { AvatarRing } from "./avatar-ring"
+import { ActivityTicker } from "./activity-ticker"
+
+interface TopBarProps {
+  circleName: string | null
+  circleId: string | null
+}
+
+export function TopBar({ circleName, circleId }: TopBarProps) {
+  const { data } = usePresence(circleId)
+
+  const members = data?.members ?? []
+  const activity = data?.activity ?? []
+
+  // Sort: building first, then online, then away
+  const statusOrder: Record<string, number> = { building: 0, online: 1, away: 2 }
+  const sortedMembers = [...members].sort(
+    (a, b) => (statusOrder[a.status] ?? 3) - (statusOrder[b.status] ?? 3)
+  )
+
+  const activeMembers = sortedMembers.filter(
+    (m) => m.status === "building" || m.status === "online"
+  )
+  const buildingCount = members.filter((m) => m.status === "building").length
+
+  return (
+    <>
+      {/* Sticky header */}
+      <header className="sticky top-0 z-50 border-b border-[rgba(255,255,255,0.04)] bg-[rgba(5,5,5,0.8)] backdrop-blur-[24px]">
+        <div className="mx-auto flex h-14 max-w-2xl items-center justify-between px-4">
+          {/* Left: Logo */}
+          <Link href="/" className="flex items-center">
+            <span className="font-heading text-xl font-extrabold tracking-tight">
+              <span className="bg-gradient-to-r from-accent-green to-accent-cyan bg-clip-text text-transparent">
+                vibecircle
+              </span>
+            </span>
+          </Link>
+
+          {/* Center: Presence cluster */}
+          <div className="flex items-center gap-1">
+            {activeMembers.length > 0 && (
+              <div className="flex items-center">
+                {/* Avatar stack with slight overlap */}
+                <div className="flex -space-x-2">
+                  {activeMembers.slice(0, 6).map((member) => (
+                    <AvatarRing
+                      key={member.userId}
+                      name={member.name ?? "?"}
+                      status={member.status}
+                    />
+                  ))}
+                </div>
+                {buildingCount > 0 && (
+                  <span className="ml-2 text-xs font-medium text-accent-green">
+                    {buildingCount} building
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Right: Circle badge + new circle link */}
+          <div className="flex items-center gap-2">
+            {circleName && (
+              <span className="rounded-full border border-border-subtle bg-bg-elevated px-3 py-1 text-xs font-medium text-text-secondary">
+                {circleName}
+              </span>
+            )}
+            <Link
+              href="/new-circle"
+              className="rounded-full border border-border-subtle bg-bg-elevated px-3 py-1 text-xs font-medium text-text-secondary transition-colors hover:border-accent-green/30 hover:text-text-primary"
+            >
+              + New circle
+            </Link>
+          </div>
+        </div>
+      </header>
+
+      {/* Activity ticker below the header */}
+      {activity.length > 0 && <ActivityTicker events={activity} />}
+    </>
+  )
+}
