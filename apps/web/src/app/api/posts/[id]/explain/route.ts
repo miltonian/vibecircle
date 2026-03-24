@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
-import { users, posts, comments } from "@/lib/db/schema"
+import { users, posts } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
 import { explainProject } from "@/lib/ai"
+import { addComment } from "@/lib/db/queries"
 
 /** POST /api/posts/[id]/explain — AI-analyze the post's repo and stream the explanation */
 export async function POST(
@@ -83,12 +84,7 @@ export async function POST(
 
           // After streaming completes, save the full text as an AI comment
           if (fullText.trim()) {
-            await db.insert(comments).values({
-              postId,
-              authorId: session.user!.id,
-              body: fullText.trim(),
-              isAi: true,
-            })
+            await addComment(postId, session.user!.id as string, fullText.trim(), true)
           }
         } catch (err) {
           console.error("[api/posts/explain] streaming error", {
