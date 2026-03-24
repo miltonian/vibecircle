@@ -1,0 +1,22 @@
+{
+  "name": "vibecircle",
+  "owner": {
+    "name": "vibecircle",
+    "email": "miltonian3@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "vibecircle",
+      "source": "./packages/plugin",
+      "description": "See what your friends are building. Social feed for vibe coders. Share screenshots, deploy links, and coding activity with your friend group.",
+      "version": "0.1.0",
+      "author": {
+        "name": "vibecircle"
+      },
+      "homepage": "https://web-mauve-two-91.vercel.app",
+      "repository": "https://github.com/miltonian/vibecircle",
+      "license": "MIT",
+      "keywords": ["social", "vibe-coding", "feed", "sharing", "presence", "friends"]
+    }
+  ]
+}
