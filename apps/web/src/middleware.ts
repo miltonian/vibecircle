@@ -8,6 +8,7 @@ const publicPaths = [
   "/api/auth",
   "/invite",
   "/api/presence",
+  "/setup",
 ]
 
 // Pattern-based public routes (checked with startsWith)
