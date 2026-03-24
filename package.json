@@ -9,7 +9,10 @@
     "dev": "turbo dev",
     "build": "turbo build",
     "lint": "turbo lint",
-    "test": "turbo test"
+    "test": "turbo test",
+    "seed": "cd apps/web && bun run scripts/seed.ts",
+    "db:push": "cd apps/web && bunx drizzle-kit push",
+    "db:generate": "cd apps/web && bunx drizzle-kit generate"
   },
   "devDependencies": {
     "turbo": "^2"
