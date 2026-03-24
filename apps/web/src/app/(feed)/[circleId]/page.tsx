@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth"
 import { getCircleById, getCircleMembers } from "@/lib/db/queries"
 import { redirect } from "next/navigation"
 import Link from "next/link"
+import { FeedView } from "@/components/feed/feed-view"
 
 export default async function CircleFeedPage({
   params,
@@ -42,7 +43,7 @@ export default async function CircleFeedPage({
   return (
     <div>
       {/* Circle header */}
-      <div className="mb-8 rounded-[20px] border border-border-subtle bg-bg-card p-6">
+      <div className="mb-6 rounded-[20px] border border-border-subtle bg-bg-card p-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="font-heading text-2xl font-bold text-text-primary">
@@ -90,35 +91,8 @@ export default async function CircleFeedPage({
         </div>
       </div>
 
-      {/* Empty feed state */}
-      <div className="flex min-h-[30vh] items-center justify-center">
-        <div className="text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-bg-elevated">
-            <svg
-              className="h-8 w-8 text-text-muted"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={1.5}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-          </div>
-          <h2 className="font-heading text-lg font-semibold text-text-primary">
-            No posts yet
-          </h2>
-          <p className="mt-1 text-sm text-text-muted">
-            Start building and share with{" "}
-            <code className="rounded bg-bg-elevated px-1.5 py-0.5 font-code text-xs text-accent-green">
-              /share
-            </code>
-          </p>
-        </div>
-      </div>
+      {/* Feed */}
+      <FeedView circleId={circleId} />
     </div>
   )
 }
