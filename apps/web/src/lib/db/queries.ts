@@ -375,6 +375,135 @@ export async function getCirclePresence(circleId: string) {
   }))
 }
 
+// ── Reaction Queries ────────────────────────────────────────────────────────
+
+/** Toggle a reaction on a post. If the user already reacted with this emoji,
+ *  remove it; otherwise, add it. Returns { added: boolean }. */
+export async function toggleReaction(
+  postId: string,
+  userId: string,
+  emoji: string
+) {
+  // Check if reaction already exists
+  const [existing] = await db
+    .select()
+    .from(reactions)
+    .where(
+      and(
+        eq(reactions.postId, postId),
+        eq(reactions.userId, userId),
+        eq(reactions.emoji, emoji)
+      )
+    )
+    .limit(1)
+
+  if (existing) {
+    await db.delete(reactions).where(eq(reactions.id, existing.id))
+    return { added: false }
+  }
+
+  await db.insert(reactions).values({ postId, userId, emoji })
+  return { added: true }
+}
+
+/** Get reactions for a post, grouped by emoji with counts and user IDs */
+export async function getReactions(postId: string) {
+  const rows = await db
+    .select({
+      emoji: reactions.emoji,
+      userId: reactions.userId,
+    })
+    .from(reactions)
+    .where(eq(reactions.postId, postId))
+
+  // Group by emoji
+  const grouped = new Map<string, string[]>()
+  for (const row of rows) {
+    if (!grouped.has(row.emoji)) {
+      grouped.set(row.emoji, [])
+    }
+    grouped.get(row.emoji)!.push(row.userId)
+  }
+
+  return Array.from(grouped.entries()).map(([emoji, userIds]) => ({
+    emoji,
+    count: userIds.length,
+    userIds,
+  }))
+}
+
+// ── Comment Queries ─────────────────────────────────────────────────────────
+
+/** Add a comment to a post. Returns the comment with author info. */
+export async function addComment(
+  postId: string,
+  authorId: string,
+  body: string,
+  isAi = false
+) {
+  const [comment] = await db
+    .insert(comments)
+    .values({ postId, authorId, body, isAi })
+    .returning()
+
+  // Fetch author info
+  const [author] = await db
+    .select({
+      name: users.name,
+      avatarUrl: users.avatarUrl,
+      image: users.image,
+    })
+    .from(users)
+    .where(eq(users.id, authorId))
+    .limit(1)
+
+  return {
+    id: comment.id,
+    postId: comment.postId,
+    body: comment.body,
+    isAi: comment.isAi,
+    createdAt: comment.createdAt,
+    author: {
+      id: authorId,
+      name: author?.name ?? null,
+      avatarUrl: author?.avatarUrl ?? author?.image ?? null,
+    },
+  }
+}
+
+/** Get all comments for a post with author info, ordered by created_at ASC */
+export async function getComments(postId: string) {
+  const rows = await db
+    .select({
+      id: comments.id,
+      postId: comments.postId,
+      body: comments.body,
+      isAi: comments.isAi,
+      createdAt: comments.createdAt,
+      authorId: comments.authorId,
+      authorName: users.name,
+      authorAvatarUrl: users.avatarUrl,
+      authorImage: users.image,
+    })
+    .from(comments)
+    .innerJoin(users, eq(comments.authorId, users.id))
+    .where(eq(comments.postId, postId))
+    .orderBy(comments.createdAt)
+
+  return rows.map((row) => ({
+    id: row.id,
+    postId: row.postId,
+    body: row.body,
+    isAi: row.isAi,
+    createdAt: row.createdAt,
+    author: {
+      id: row.authorId,
+      name: row.authorName,
+      avatarUrl: row.authorAvatarUrl ?? row.authorImage ?? null,
+    },
+  }))
+}
+
 /** Get recent posts/events for the activity ticker.
  *  Returns last 10 events formatted for display. */
 export async function getRecentActivity(circleId: string) {
