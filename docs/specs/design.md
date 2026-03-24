@@ -174,10 +174,11 @@ Black canvas with neon gradients, glow effects, high energy. The app feels alive
 | **File Storage** | Vercel Blob | Screenshots, videos, media uploads |
 | **Auth** | Auth.js (NextAuth) | Simple, extensible, magic link + OAuth |
 | **Real-time** | SWR polling (3-5s) | Simple, no infra, sufficient for 5-15 people |
-| **AI (explain)** | AI SDK + AI Gateway | Model-agnostic, cost tracking, OIDC auth |
+| **AI (explain)** | AI SDK (BYOK) | Users bring their own API key — zero AI cost to host |
 | **Plugin** | Claude Code Plugin SDK | Hooks, commands, HTTP, Playwright |
 | **Hosting** | Vercel | Zero-config, preview URLs for embeds |
 | **Monorepo** | Turborepo | Plugin + web app in one repo |
+| **Package Manager** | Bun | Faster installs, faster scripts, native TypeScript |
 
 ### Why not WebSockets for real-time?
 
@@ -349,12 +350,16 @@ When a user clicks "Explain how this was built" on a post:
 
 1. Frontend calls `POST /api/posts/[id]/explain`
 2. Backend fetches the post's associated repo URL and recent commits
-3. Uses AI SDK `streamText` with AI Gateway to analyze the codebase:
+3. Uses AI SDK `streamText` with the user's own API key (BYOK — Bring Your Own Key):
+   - Users configure their API key in account settings (stored encrypted in DB)
+   - Supports OpenAI, Anthropic, or any AI SDK-compatible provider
    - Reads key files (package.json, main components, API routes)
    - Summarizes the architecture and interesting patterns
    - Highlights what's novel or clever
 4. Streams the response back and creates a comment with `is_ai: true`
 5. The comment renders with an AI badge and uses AI Elements `<MessageResponse>` for rich markdown
+
+**BYOK model:** Zero AI cost to the platform operator. Each user provides their own API key. If no key is configured, the Explain button shows "Add API key to use" and links to settings.
 
 **Scope for v1:** Works with public GitHub repos. Private repo support (via GitHub App) is a v2 feature.
 
