@@ -1,0 +1,9 @@
+{
+  "name": "vibecircle",
+  "version": "0.1.0",
+  "description": "See what your friends are building. Social feed for vibe coders.",
+  "author": {
+    "name": "vibecircle",
+    "url": "https://github.com/miltonian/vibecircle"
+  }
+}
