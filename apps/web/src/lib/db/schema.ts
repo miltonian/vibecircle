@@ -197,3 +197,17 @@ export const apiTokens = pgTable("api_tokens", {
 })
 
 export type ApiToken = typeof apiTokens.$inferSelect
+
+// ── Device Codes (for device code auth flow) ─────────────────────────────
+export const deviceCodes = pgTable("device_codes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  code: text("code").unique().notNull(), // 8-char human-readable code
+  userId: uuid("user_id").references(() => users.id), // null until authorized
+  token: text("token"), // null until authorized, set to the api_token value
+  circleId: text("circle_id"), // null until authorized, user picks their circle
+  status: text("status").notNull().default("pending"), // pending | authorized | expired
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+})
+
+export type DeviceCode = typeof deviceCodes.$inferSelect

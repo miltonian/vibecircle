@@ -73,21 +73,22 @@ If the user ran `/circle invite`, instead of the above, explain:
 
 If the user ran `/circle setup`, or if step 1 found the plugin is not configured, follow these steps:
 
-### 6a. Open the setup page
+### 6a. Run the device auth flow
 
-Run: `open https://web-mauve-two-91.vercel.app/setup/plugin` (macOS)
+Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/device-auth.js`
+
+This will:
+1. Request a device code from the server
+2. Open the browser for the user to authorize
+3. Poll until the user authorizes (or the code expires)
+4. Auto-write the config to `~/.vibecircle/config.json`
 
 Tell the user:
-"I've opened the plugin setup page in your browser. Sign in if needed, select your circle, then copy the config JSON and save it to `~/.vibecircle/config.json`."
+"Starting plugin setup — a browser window will open for you to authorize. Just click Authorize and it will auto-configure."
 
-### 6b. Wait for the user
+### 6b. Verify the config
 
-Wait for the user to confirm they've saved the config file. You can say:
-"Let me know when you've saved the config and I'll verify it works."
-
-### 6c. Verify the config
-
-Once the user confirms, run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/lib/config.js check`
+After the script finishes, run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/lib/config.js check`
 
 - If output starts with "configured", tell the user: "You're all set! Your plugin is connected to vibecircle."
-- If output starts with "not-configured", tell the user: "Hmm, the config doesn't look right. Make sure you saved the JSON to `~/.vibecircle/config.json` and try again."
+- If output starts with "not-configured", tell the user: "Hmm, something went wrong. You can try again with `/circle setup`, or set up manually at https://web-mauve-two-91.vercel.app/setup/plugin"
