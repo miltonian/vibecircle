@@ -1,0 +1,39 @@
+# dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# build
+.next/
+out/
+dist/
+build/
+
+# env
+.env
+.env*.local
+
+# vercel
+.vercel
+
+# ide
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# os
+.DS_Store
+Thumbs.db
+
+# turbo
+.turbo
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# superpowers
+.superpowers/
