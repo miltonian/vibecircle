@@ -1,6 +1,5 @@
 import NextAuth from "next-auth"
 import GitHub from "next-auth/providers/github"
-import Resend from "next-auth/providers/resend"
 import { DrizzleAdapter } from "@auth/drizzle-adapter"
 import { getDb } from "./db"
 import { users, accounts, sessions, verificationTokens } from "./db/schema"
@@ -23,12 +22,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     strategy: "jwt",
   },
 
-  providers: [
-    GitHub,
-    Resend({
-      from: "vibecircle <noreply@vibecircle.dev>",
-    }),
-  ],
+  providers: [GitHub],
 
   pages: {
     signIn: "/login",
