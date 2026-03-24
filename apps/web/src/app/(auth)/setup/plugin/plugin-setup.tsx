@@ -18,8 +18,7 @@ export function PluginSetup({ circles }: PluginSetupProps) {
   const [selectedCircleId, setSelectedCircleId] = useState(
     circles[0]?.id ?? ""
   )
-  const [copiedToken, setCopiedToken] = useState(false)
-  const [copiedConfig, setCopiedConfig] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   // Auto-generate token on mount
   useEffect(() => {
@@ -58,183 +57,101 @@ export function PluginSetup({ circles }: PluginSetupProps) {
     }
   }, [])
 
-  const configJson = JSON.stringify(
-    {
-      apiUrl: "https://web-mauve-two-91.vercel.app",
-      authToken: token ?? "vc_...",
-      circleId: selectedCircleId || "<select-a-circle>",
-      autoShare: true,
-    },
-    null,
-    2
-  )
+  const configJson = JSON.stringify({
+    apiUrl: "https://web-mauve-two-91.vercel.app",
+    authToken: token ?? "vc_...",
+    circleId: selectedCircleId || "",
+    autoShare: true,
+  })
 
-  const copyToClipboard = useCallback(
-    async (text: string, type: "token" | "config") => {
-      try {
-        await navigator.clipboard.writeText(text)
-        if (type === "token") {
-          setCopiedToken(true)
-          setTimeout(() => setCopiedToken(false), 2000)
-        } else {
-          setCopiedConfig(true)
-          setTimeout(() => setCopiedConfig(false), 2000)
-        }
-      } catch {
-        // Fallback for older browsers
-        const textarea = document.createElement("textarea")
-        textarea.value = text
-        textarea.style.position = "fixed"
-        textarea.style.opacity = "0"
-        document.body.appendChild(textarea)
-        textarea.select()
-        document.execCommand("copy")
-        document.body.removeChild(textarea)
-        if (type === "token") {
-          setCopiedToken(true)
-          setTimeout(() => setCopiedToken(false), 2000)
-        } else {
-          setCopiedConfig(true)
-          setTimeout(() => setCopiedConfig(false), 2000)
-        }
-      }
-    },
-    []
-  )
+  const oneLiner = `mkdir -p ~/.vibecircle && echo '${configJson}' > ~/.vibecircle/config.json && echo "✓ vibecircle configured"`
+
+  const copyCommand = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(oneLiner)
+    } catch {
+      const textarea = document.createElement("textarea")
+      textarea.value = oneLiner
+      textarea.style.position = "fixed"
+      textarea.style.opacity = "0"
+      document.body.appendChild(textarea)
+      textarea.select()
+      document.execCommand("copy")
+      document.body.removeChild(textarea)
+    }
+    setCopied(true)
+    setTimeout(() => setCopied(false), 3000)
+  }, [oneLiner])
 
   return (
     <div className="relative z-10 w-full max-w-lg">
       <div className="rounded-[20px] border border-border-subtle bg-bg-card p-8">
-        {/* Logo & heading */}
-        <div className="mb-8 text-center">
+        {/* Logo */}
+        <div className="mb-6 text-center">
           <h1 className="font-heading text-3xl font-extrabold tracking-tight">
             <span className="bg-gradient-to-r from-accent-green to-accent-cyan bg-clip-text text-transparent">
               vibecircle
             </span>
           </h1>
-          <h2 className="mt-3 font-heading text-xl font-bold text-text-primary">
+          <p className="mt-2 text-sm text-text-secondary">
             Connect your Claude Code plugin
-          </h2>
-          <p className="mt-1.5 text-sm text-text-secondary">
-            Link your terminal to your circle in three steps.
           </p>
         </div>
 
-        {/* Step 1: API Token */}
-        <section className="mb-6">
-          <div className="mb-2 flex items-center gap-2">
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent-green/10 text-xs font-bold text-accent-green">
-              1
-            </span>
-            <h3 className="text-sm font-semibold text-text-primary">
-              Your API token
-            </h3>
-          </div>
-
-          {tokenLoading ? (
-            <div className="flex items-center gap-2 rounded-xl border border-border-dim bg-bg-elevated px-4 py-3">
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-accent-green border-t-transparent" />
-              <span className="text-sm text-text-muted">
-                Generating token...
-              </span>
-            </div>
-          ) : tokenError ? (
-            <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-              {tokenError}
-            </div>
-          ) : (
-            <div className="group relative rounded-xl border border-border-dim bg-bg-elevated">
-              <code className="block overflow-x-auto px-4 py-3 font-code text-sm text-accent-green">
-                {token}
-              </code>
-              <button
-                onClick={() => token && copyToClipboard(token, "token")}
-                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg border border-border-subtle bg-bg-card px-3 py-1.5 text-xs font-medium text-text-secondary opacity-0 transition-all hover:border-accent-green/30 hover:text-accent-green group-hover:opacity-100"
-              >
-                {copiedToken ? "Copied!" : "Copy"}
-              </button>
-            </div>
-          )}
-        </section>
-
-        {/* Step 2: Select Circle */}
-        <section className="mb-6">
-          <div className="mb-2 flex items-center gap-2">
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent-cyan/10 text-xs font-bold text-accent-cyan">
-              2
-            </span>
-            <h3 className="text-sm font-semibold text-text-primary">
-              Choose a circle
-            </h3>
-          </div>
-
-          {circles.length === 0 ? (
-            <div className="rounded-xl border border-border-dim bg-bg-elevated px-4 py-3 text-sm text-text-muted">
-              No circles yet. Create one in the app first.
-            </div>
-          ) : (
+        {/* Circle selector — only show if multiple */}
+        {circles.length > 1 && (
+          <div className="mb-5">
+            <p className="mb-2 text-xs font-medium text-text-muted">Circle</p>
             <div className="space-y-1.5">
               {circles.map((circle) => (
                 <button
                   key={circle.id}
                   onClick={() => setSelectedCircleId(circle.id)}
-                  className={`flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left text-sm transition-all ${
+                  className={`flex w-full items-center rounded-xl border px-4 py-2.5 text-left text-sm transition-all ${
                     selectedCircleId === circle.id
                       ? "border-accent-green/40 bg-accent-green/5 text-text-primary"
-                      : "border-border-dim bg-bg-elevated text-text-secondary hover:border-border-subtle hover:bg-bg-surface"
+                      : "border-border-dim bg-bg-elevated text-text-secondary hover:border-border-subtle"
                   }`}
                 >
-                  <span className="font-medium">{circle.name}</span>
-                  <span className="font-code text-xs text-text-muted">
-                    {circle.id.slice(0, 8)}...
-                  </span>
+                  {circle.name}
                 </button>
               ))}
             </div>
-          )}
-        </section>
-
-        {/* Step 3: Config JSON */}
-        <section className="mb-6">
-          <div className="mb-2 flex items-center gap-2">
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent-purple/10 text-xs font-bold text-accent-purple">
-              3
-            </span>
-            <h3 className="text-sm font-semibold text-text-primary">
-              Copy your config
-            </h3>
           </div>
+        )}
 
-          <div className="relative rounded-xl border border-border-dim bg-bg-elevated">
-            <pre className="overflow-x-auto p-4 font-code text-sm leading-relaxed text-text-primary">
-              {configJson}
-            </pre>
+        {/* The one command */}
+        {tokenLoading ? (
+          <div className="flex items-center justify-center gap-2 rounded-xl border border-border-dim bg-bg-elevated px-4 py-6">
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-accent-green border-t-transparent" />
+            <span className="text-sm text-text-muted">Setting up...</span>
+          </div>
+        ) : tokenError ? (
+          <div className="rounded-xl border border-accent-pink/30 bg-accent-pink/5 px-4 py-3 text-sm text-accent-pink">
+            {tokenError}
+          </div>
+        ) : (
+          <>
+            <div className="rounded-xl border border-border-dim bg-bg-elevated p-4">
+              <code className="block overflow-x-auto whitespace-pre-wrap break-all font-code text-[11px] leading-relaxed text-accent-green/80">
+                {oneLiner}
+              </code>
+            </div>
+
             <button
-              onClick={() => copyToClipboard(configJson, "config")}
+              onClick={copyCommand}
               disabled={!token || !selectedCircleId}
-              className="absolute right-3 top-3 rounded-lg bg-gradient-to-r from-accent-green to-accent-cyan px-4 py-1.5 text-xs font-bold text-black transition-opacity hover:opacity-90 disabled:opacity-30"
+              className="mt-3 w-full rounded-xl bg-gradient-to-r from-accent-green to-accent-cyan px-4 py-3.5 text-sm font-bold text-black transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-30"
             >
-              {copiedConfig ? "Copied!" : "Copy config"}
+              {copied ? "Copied! Paste in your terminal" : "Copy setup command"}
             </button>
-          </div>
-        </section>
+          </>
+        )}
 
-        {/* Instructions */}
-        <div className="rounded-xl border border-border-dim bg-bg-surface px-4 py-3">
-          <p className="text-sm text-text-secondary">
-            Save the config above to:
-          </p>
-          <code className="mt-1 block font-code text-sm text-accent-cyan">
-            ~/.vibecircle/config.json
-          </code>
-          <p className="mt-2 text-xs text-text-muted">
-            Or use{" "}
-            <code className="rounded bg-bg-elevated px-1.5 py-0.5 font-code text-accent-green">
-              /circle setup
-            </code>{" "}
-            in Claude Code to do it automatically.
-          </p>
-        </div>
+        {/* After */}
+        <p className="mt-5 text-center text-xs text-text-dim">
+          Then use <code className="font-code text-accent-green">/share</code> in Claude Code to post to your circle
+        </p>
       </div>
     </div>
   )
