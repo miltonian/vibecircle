@@ -1,6 +1,7 @@
-import { eq, and } from "drizzle-orm"
+import { eq, and, desc, lt, gt, sql, count } from "drizzle-orm"
 import { db } from "."
-import { circles, circleMembers, users } from "./schema"
+import { circles, circleMembers, users, posts, reactions, comments, presence } from "./schema"
+import type { NewPost } from "./schema"
 
 /** Generate a short random alphanumeric invite code (8 chars) */
 function generateCode(length = 8): string {
@@ -136,4 +137,270 @@ export async function getCircleByInviteCode(inviteCode: string) {
     .limit(1)
 
   return circle ?? null
+}
+
+// ── Post Queries ────────────────────────────────────────────────────────────
+
+/** Create a post in a circle */
+export async function createPost(
+  circleId: string,
+  authorId: string,
+  data: {
+    type: string
+    body?: string | null
+    media?: unknown[] | null
+    metadata?: Record<string, unknown> | null
+  }
+) {
+  const [post] = await db
+    .insert(posts)
+    .values({
+      circleId,
+      authorId,
+      type: data.type,
+      body: data.body ?? null,
+      media: data.media ?? null,
+      metadata: data.metadata ?? null,
+    })
+    .returning()
+
+  return post
+}
+
+/** Get a paginated feed of posts for a circle, newest first */
+export async function getFeed(
+  circleId: string,
+  opts: { cursor?: string; limit?: number } = {}
+) {
+  const limit = opts.limit ?? 20
+
+  // Build conditions
+  const conditions = [eq(posts.circleId, circleId)]
+
+  // If cursor is provided, get the cursor post's createdAt for pagination
+  if (opts.cursor) {
+    const [cursorPost] = await db
+      .select({ createdAt: posts.createdAt })
+      .from(posts)
+      .where(eq(posts.id, opts.cursor))
+      .limit(1)
+
+    if (cursorPost?.createdAt) {
+      conditions.push(lt(posts.createdAt, cursorPost.createdAt))
+    }
+  }
+
+  // Fetch posts with author info
+  const rows = await db
+    .select({
+      id: posts.id,
+      type: posts.type,
+      body: posts.body,
+      media: posts.media,
+      metadata: posts.metadata,
+      createdAt: posts.createdAt,
+      authorId: posts.authorId,
+      authorName: users.name,
+      authorAvatarUrl: users.avatarUrl,
+      authorImage: users.image,
+    })
+    .from(posts)
+    .innerJoin(users, eq(posts.authorId, users.id))
+    .where(and(...conditions))
+    .orderBy(desc(posts.createdAt))
+    .limit(limit + 1) // Fetch one extra to determine if there's a next page
+
+  const hasMore = rows.length > limit
+  const feedRows = hasMore ? rows.slice(0, limit) : rows
+  const nextCursor = hasMore ? feedRows[feedRows.length - 1].id : null
+
+  if (feedRows.length === 0) {
+    return { posts: [], nextCursor: null }
+  }
+
+  // Get post IDs for batch queries
+  const postIds = feedRows.map((r) => r.id)
+
+  // Fetch reaction counts grouped by emoji for all posts
+  const reactionRows = await db
+    .select({
+      postId: reactions.postId,
+      emoji: reactions.emoji,
+      count: count(),
+    })
+    .from(reactions)
+    .where(sql`${reactions.postId} IN ${postIds}`)
+    .groupBy(reactions.postId, reactions.emoji)
+
+  // Fetch comment counts for all posts
+  const commentRows = await db
+    .select({
+      postId: comments.postId,
+      count: count(),
+    })
+    .from(comments)
+    .where(sql`${comments.postId} IN ${postIds}`)
+    .groupBy(comments.postId)
+
+  // Build lookup maps
+  const reactionMap = new Map<string, Record<string, number>>()
+  for (const r of reactionRows) {
+    if (!reactionMap.has(r.postId)) {
+      reactionMap.set(r.postId, {})
+    }
+    reactionMap.get(r.postId)![r.emoji] = Number(r.count)
+  }
+
+  const commentMap = new Map<string, number>()
+  for (const c of commentRows) {
+    commentMap.set(c.postId, Number(c.count))
+  }
+
+  // Assemble final post objects
+  const enrichedPosts = feedRows.map((row) => ({
+    id: row.id,
+    type: row.type,
+    body: row.body,
+    media: row.media,
+    metadata: row.metadata,
+    createdAt: row.createdAt,
+    author: {
+      id: row.authorId,
+      name: row.authorName,
+      avatarUrl: row.authorAvatarUrl ?? row.authorImage,
+    },
+    reactionCounts: reactionMap.get(row.id) ?? {},
+    commentCount: commentMap.get(row.id) ?? 0,
+  }))
+
+  return { posts: enrichedPosts, nextCursor }
+}
+
+/** Get a single post with author info */
+export async function getPost(postId: string) {
+  const [row] = await db
+    .select({
+      id: posts.id,
+      circleId: posts.circleId,
+      type: posts.type,
+      body: posts.body,
+      media: posts.media,
+      metadata: posts.metadata,
+      createdAt: posts.createdAt,
+      authorId: posts.authorId,
+      authorName: users.name,
+      authorAvatarUrl: users.avatarUrl,
+      authorImage: users.image,
+    })
+    .from(posts)
+    .innerJoin(users, eq(posts.authorId, users.id))
+    .where(eq(posts.id, postId))
+    .limit(1)
+
+  if (!row) return null
+
+  return {
+    id: row.id,
+    circleId: row.circleId,
+    type: row.type,
+    body: row.body,
+    media: row.media,
+    metadata: row.metadata,
+    createdAt: row.createdAt,
+    author: {
+      id: row.authorId,
+      name: row.authorName,
+      avatarUrl: row.authorAvatarUrl ?? row.authorImage,
+    },
+  }
+}
+
+// ── Presence Queries ─────────────────────────────────────────────────────────
+
+/** Upsert a presence row for a user in a circle */
+export async function updatePresence(
+  userId: string,
+  circleId: string,
+  status: string,
+  activity?: string | null
+) {
+  const [row] = await db
+    .insert(presence)
+    .values({
+      userId,
+      circleId,
+      status,
+      activity: activity ?? null,
+      updatedAt: new Date(),
+    })
+    .onConflictDoUpdate({
+      target: [presence.userId, presence.circleId],
+      set: {
+        status,
+        activity: activity ?? null,
+        updatedAt: new Date(),
+      },
+    })
+    .returning()
+
+  return row
+}
+
+/** Get all presence info for a circle, joined with user info.
+ *  Overrides status to "away" if updatedAt is older than 5 minutes. */
+export async function getCirclePresence(circleId: string) {
+  const rows = await db
+    .select({
+      userId: presence.userId,
+      status: presence.status,
+      activity: presence.activity,
+      updatedAt: presence.updatedAt,
+      name: users.name,
+      avatarUrl: users.avatarUrl,
+      image: users.image,
+    })
+    .from(presence)
+    .innerJoin(users, eq(presence.userId, users.id))
+    .where(eq(presence.circleId, circleId))
+
+  const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000)
+
+  return rows.map((row) => ({
+    userId: row.userId,
+    name: row.name,
+    avatarUrl: row.avatarUrl ?? row.image,
+    status: row.updatedAt && row.updatedAt < fiveMinutesAgo ? "away" : row.status,
+    activity: row.activity,
+    updatedAt: row.updatedAt,
+  }))
+}
+
+/** Get recent posts/events for the activity ticker.
+ *  Returns last 10 events formatted for display. */
+export async function getRecentActivity(circleId: string) {
+  const rows = await db
+    .select({
+      type: posts.type,
+      body: posts.body,
+      createdAt: posts.createdAt,
+      authorName: users.name,
+    })
+    .from(posts)
+    .innerJoin(users, eq(posts.authorId, users.id))
+    .where(eq(posts.circleId, circleId))
+    .orderBy(desc(posts.createdAt))
+    .limit(10)
+
+  const typeToAction: Record<string, string> = {
+    shipped: "shipped something",
+    wip: "started new project",
+    video: "shared a video",
+    live: "went live",
+    ambient: "shared an update",
+  }
+
+  return rows.map((row) => ({
+    userName: row.authorName ?? "Someone",
+    action: typeToAction[row.type] ?? "posted",
+  }))
 }
