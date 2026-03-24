@@ -183,3 +183,17 @@ export const presence = pgTable(
 
 export type Presence = typeof presence.$inferSelect
 export type NewPresence = typeof presence.$inferInsert
+
+// ── API Tokens (for plugin auth) ──────────────────────────────────────────
+export const apiTokens = pgTable("api_tokens", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id")
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull(),
+  token: text("token").unique().notNull(),
+  name: text("name").notNull(), // e.g. "Claude Code Plugin"
+  lastUsedAt: timestamp("last_used_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+})
+
+export type ApiToken = typeof apiTokens.$inferSelect

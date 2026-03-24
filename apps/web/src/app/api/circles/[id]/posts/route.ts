@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server"
-import { auth } from "@/lib/auth"
 import { createPost } from "@/lib/db/queries"
 import { db } from "@/lib/db"
 import { circleMembers } from "@/lib/db/schema"
 import { eq, and } from "drizzle-orm"
-import { jwtDecrypt } from "jose"
+import { getAuthUserId } from "@/lib/api-auth"
 
 const VALID_TYPES = ["shipped", "wip", "video", "live", "ambient"] as const
 
@@ -15,56 +14,6 @@ const REQUIRED_METADATA: Record<string, string[]> = {
   video: [],
   live: ["deploy_url"],
   ambient: ["commits_count", "files_changed"],
-}
-
-/** Derive the same encryption key Auth.js uses from AUTH_SECRET */
-async function getDerivedKey() {
-  const secret = process.env.AUTH_SECRET
-  if (!secret) throw new Error("AUTH_SECRET is not set")
-
-  const enc = new TextEncoder()
-  const keyMaterial = await crypto.subtle.importKey(
-    "raw",
-    enc.encode(secret),
-    "HKDF",
-    false,
-    ["deriveKey"]
-  )
-
-  return crypto.subtle.deriveKey(
-    { name: "HKDF", hash: "SHA-256", salt: enc.encode(""), info: enc.encode("Auth.js Generated Encryption Key") },
-    keyMaterial,
-    { name: "AES-GCM", length: 256 },
-    false,
-    ["encrypt", "decrypt"]
-  )
-}
-
-/** Get user ID from session or Bearer token */
-async function getAuthUserId(request: Request): Promise<string | null> {
-  // Try session auth first
-  const session = await auth()
-  if (session?.user?.id) {
-    return session.user.id
-  }
-
-  // Try Bearer token auth (for plugin: the token is a session JWT)
-  const authHeader = request.headers.get("authorization")
-  if (authHeader?.startsWith("Bearer ")) {
-    const token = authHeader.slice(7)
-    try {
-      // Auth.js v5 with JWT strategy uses JWE (encrypted JWT) with a derived key
-      const derivedKey = await getDerivedKey()
-      const { payload } = await jwtDecrypt(token, derivedKey)
-      if (payload.id && typeof payload.id === "string") {
-        return payload.id
-      }
-    } catch {
-      // Invalid token — fall through to return null
-    }
-  }
-
-  return null
 }
 
 /** POST /api/circles/[id]/posts — create a post in a circle */
