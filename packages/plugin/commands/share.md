@@ -21,15 +21,23 @@ Read `~/.vibecircle/session.json` if it exists. This gives you context about the
 
 ## 3. Capture a screenshot
 
-Try to capture a screenshot of what the user is building:
+Try to capture a screenshot of what the user is building. Use this priority order to find the right URL:
 
-a. Check if a dev server is running by trying `curl -s -o /dev/null -w "%{http_code}" http://localhost:3000` (also try ports 3001, 5173, 8080). If any returns 200, use that URL.
-b. If no dev server, check for a Vercel deploy URL by running `vercel ls --json 2>/dev/null | head -1` and extracting the URL. Or check for a known production URL in the project's package.json homepage field.
-c. If you found a URL, use Playwright MCP to screenshot it:
+**a. Check conversation context first.** If a dev server was started earlier in this conversation, you already know the URL and port. Use that. Do NOT blindly scan ports — another project might be running on a common port.
+
+**b. Check the current project's dev server.** If you don't know from context, detect the project's framework and find its process:
+   - Run: `lsof -i -P -n | grep LISTEN | grep -E "node|bun|next" | grep "$(pwd)" 2>/dev/null` to find processes in the current directory
+   - Or check `.next/` directory existence and read the dev log if available
+   - Only use a localhost URL if you can confirm it belongs to THIS project
+
+**c. Use the production URL.** Check `package.json` for a `homepage` field, or read `~/.vibecircle/config.json` for `apiUrl`. For vibecircle specifically, the production URL is `https://vibecircle.dev`. A production screenshot is better than screenshotting the wrong app.
+
+**d. Screenshot with Playwright MCP.** Once you have a URL:
    - Call `mcp__plugin_playwright_playwright__browser_navigate` with the URL
    - Call `mcp__plugin_playwright_playwright__browser_take_screenshot` with `type: "jpeg"` and `filename: "/tmp/vibecircle-share-{timestamp}.jpeg"`
    - Save the output file path for step 6
-d. If no URL found or Playwright fails, skip the screenshot — it's optional. Don't worry about it.
+
+**e. Skip if nothing works.** Screenshots are optional. Don't worry about it.
 
 ## 4. Generate the post draft
 

@@ -63,14 +63,15 @@ Based on the git diff, session context, and conversation context, write:
 
 4. **media**: If UI work was detected (files changed in components/, pages/, app/ directories), capture a screenshot:
 
-   **Screenshot strategy** (try in order):
-   a. Check if a dev server is running by trying `curl -s -o /dev/null -w "%{http_code}" http://localhost:3000` (also try ports 3001, 5173, 8080). If any returns 200, use that URL.
-   b. If no dev server, check for a Vercel deploy URL by running `vercel ls --json 2>/dev/null | head -1` and extracting the URL.
-   c. If you found a URL, use Playwright MCP to screenshot it:
+   **Screenshot strategy** (try in order, do NOT blindly scan ports):
+   a. **Check conversation context.** If a dev server was started in this session, you know the URL and port. Use that.
+   b. **Detect this project's dev server.** Run `lsof -i -P -n | grep LISTEN | grep -E "node|bun|next"` and match to the current working directory. Only use a localhost URL you can confirm belongs to THIS project.
+   c. **Use the production URL.** Read `~/.vibecircle/config.json` for `apiUrl` — that's the production site. A production screenshot is better than screenshotting the wrong app.
+   d. **Screenshot with Playwright MCP:**
       - Call `mcp__plugin_playwright_playwright__browser_navigate` with the URL
       - Call `mcp__plugin_playwright_playwright__browser_take_screenshot` with `type: "jpeg"` and `filename: "/tmp/vibecircle-screenshot-{timestamp}.jpeg"`
       - Save the output file path
-   d. If no URL found or Playwright fails, skip the screenshot — it's optional.
+   e. If nothing works, skip — screenshots are optional.
 
 ## 7. Show preview and ask for approval
 
