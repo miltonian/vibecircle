@@ -27,8 +27,33 @@ const newsreader = Newsreader({
 });
 
 export const metadata: Metadata = {
-  title: "vibecircle",
-  description: "See what your friends are building.",
+  title: "vibecircle — See what your team is building",
+  description:
+    "A Claude Code plugin + live feed that shows what your friends and teammates are building. The plugin auto-captures what everyone builds — no standups, no status updates.",
+  metadataBase: new URL("https://vibecircle.dev"),
+  openGraph: {
+    title: "vibecircle — See what your team is building",
+    description:
+      "A Claude Code plugin + live feed that shows what your friends and teammates are building.",
+    url: "https://vibecircle.dev",
+    siteName: "vibecircle",
+    images: [
+      {
+        url: "/og-image.jpg",
+        width: 1200,
+        height: 813,
+        alt: "vibecircle — See what your team is building",
+      },
+    ],
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "vibecircle — See what your team is building",
+    description:
+      "A Claude Code plugin + live feed that shows what your friends and teammates are building.",
+    images: ["/og-image.jpg"],
+  },
 };
 
 export default function RootLayout({
