@@ -1,6 +1,6 @@
 import { eq, and, desc, lt, sql, count } from "drizzle-orm"
 import { db } from "."
-import { circles, circleMembers, users, posts, reactions, comments, presence } from "./schema"
+import { circles, circleMembers, users, posts, reactions, comments, presence, apiTokens } from "./schema"
 import type { NewPost } from "./schema"
 
 /** Generate a short random alphanumeric invite code (8 chars) */
@@ -98,7 +98,7 @@ export async function joinCircle(inviteCode: string, userId: string) {
   return circle
 }
 
-/** Return all members of a circle with user info */
+/** Return all members of a circle with user info and plugin status */
 export async function getCircleMembers(circleId: string) {
   const rows = await db
     .select({
@@ -109,12 +109,29 @@ export async function getCircleMembers(circleId: string) {
       email: users.email,
       avatarUrl: users.avatarUrl,
       image: users.image,
+      tokenId: apiTokens.id,
     })
     .from(circleMembers)
     .innerJoin(users, eq(circleMembers.userId, users.id))
+    .leftJoin(apiTokens, eq(circleMembers.userId, apiTokens.userId))
     .where(eq(circleMembers.circleId, circleId))
 
-  return rows
+  // Deduplicate (user might have multiple tokens)
+  const seen = new Set<string>()
+  return rows.filter((r) => {
+    if (seen.has(r.userId)) return false
+    seen.add(r.userId)
+    return true
+  }).map((r) => ({
+    userId: r.userId,
+    role: r.role,
+    joinedAt: r.joinedAt,
+    name: r.name,
+    email: r.email,
+    avatarUrl: r.avatarUrl,
+    image: r.image,
+    hasPlugin: !!r.tokenId,
+  }))
 }
 
 /** Get a single circle by ID */

@@ -11,6 +11,7 @@ interface Member {
   avatarUrl: string | null
   image: string | null
   role: string
+  hasPlugin: boolean
 }
 
 interface MembersPanelProps {
@@ -25,12 +26,20 @@ export function MembersPanel({ circleId }: MembersPanelProps) {
 
   if (!members || members.length === 0) return null
 
+  const withPlugin = members.filter((m) => m.hasPlugin)
+  const withoutPlugin = members.filter((m) => !m.hasPlugin)
+
   return (
     <div className="mb-4 rounded-2xl border border-border-dim bg-bg-card p-4">
       <div className="mb-3 flex items-center justify-between">
         <span className="text-xs font-semibold text-text-muted">
           Members ({members.length})
         </span>
+        {withoutPlugin.length > 0 && (
+          <span className="text-[10px] text-text-dim">
+            {withoutPlugin.length} without plugin
+          </span>
+        )}
       </div>
       <div className="flex flex-wrap gap-2">
         {members.map((m) => (
@@ -52,6 +61,11 @@ export function MembersPanel({ circleId }: MembersPanelProps) {
             <span className="text-xs text-text-secondary">
               {m.name ?? m.email ?? "Anonymous"}
             </span>
+            {m.hasPlugin ? (
+              <span className="h-1.5 w-1.5 rounded-full bg-accent-green" title="Plugin connected" />
+            ) : (
+              <span className="text-[9px] text-text-dim" title="No plugin installed">no plugin</span>
+            )}
             {m.role === "owner" && (
               <span className="text-[9px] text-text-dim">owner</span>
             )}
