@@ -3,6 +3,9 @@ import { getCircleById } from "@/lib/db/queries"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { FeedView } from "@/components/feed/feed-view"
+import { db } from "@/lib/db"
+import { apiTokens, circleMembers } from "@/lib/db/schema"
+import { eq, and } from "drizzle-orm"
 
 export default async function CircleFeedPage({
   params,
@@ -38,10 +41,36 @@ export default async function CircleFeedPage({
     )
   }
 
+  // Check if user has plugin token
+  const [existingToken] = await db
+    .select({ id: apiTokens.id })
+    .from(apiTokens)
+    .where(eq(apiTokens.userId, session.user.id))
+    .limit(1)
+
+  const hasToken = !!existingToken
+
+  // If owner and no token, redirect to setup
+  if (!hasToken) {
+    const [membership] = await db
+      .select({ role: circleMembers.role })
+      .from(circleMembers)
+      .where(
+        and(
+          eq(circleMembers.circleId, circleId),
+          eq(circleMembers.userId, session.user.id)
+        )
+      )
+      .limit(1)
+
+    if (membership?.role === "owner") {
+      redirect(`/${circleId}/setup`)
+    }
+  }
+
   return (
     <div>
-      {/* Feed */}
-      <FeedView circleId={circleId} userId={session.user.id} />
+      <FeedView circleId={circleId} userId={session.user.id} hasToken={hasToken} />
     </div>
   )
 }

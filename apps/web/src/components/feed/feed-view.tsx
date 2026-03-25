@@ -3,19 +3,24 @@
 import { useFeed } from "@/hooks/use-feed"
 import { PostCard } from "./post-card"
 import { CreatePostDialog } from "./create-post-dialog"
+import { InstallBanner } from "@/components/onboarding/install-banner"
 
 interface FeedViewProps {
   circleId: string
   userId?: string
+  hasToken?: boolean
 }
 
-export function FeedView({ circleId, userId }: FeedViewProps) {
+export function FeedView({ circleId, userId, hasToken }: FeedViewProps) {
   const { data, error, isLoading, mutate } = useFeed(circleId)
 
   const posts = data?.posts ?? []
 
   return (
     <>
+      {/* Install banner — shown to members without the plugin */}
+      {!hasToken && <InstallBanner />}
+
       {/* Feed content */}
       {isLoading ? (
         <FeedSkeleton />
@@ -34,7 +39,7 @@ export function FeedView({ circleId, userId }: FeedViewProps) {
           </div>
         </div>
       ) : posts.length === 0 ? (
-        <EmptyFeed />
+        <EmptyFeed hasToken={hasToken} />
       ) : (
         <div className="space-y-4">
           {posts.map((post, i) => (
@@ -49,7 +54,7 @@ export function FeedView({ circleId, userId }: FeedViewProps) {
   )
 }
 
-function EmptyFeed() {
+function EmptyFeed({ hasToken }: { hasToken?: boolean }) {
   return (
     <div className="flex min-h-[30vh] items-center justify-center">
       <div className="text-center">
@@ -72,10 +77,16 @@ function EmptyFeed() {
           No posts yet
         </h2>
         <p className="mt-1 text-sm text-text-muted">
-          Start building and share with{" "}
-          <code className="rounded bg-bg-elevated px-1.5 py-0.5 font-code text-xs text-accent-green">
-            /share
-          </code>
+          {hasToken ? (
+            <>
+              Start building and share with{" "}
+              <code className="rounded bg-bg-elevated px-1.5 py-0.5 font-code text-xs text-accent-green">
+                /share
+              </code>
+            </>
+          ) : (
+            "Install the plugin to start sharing what you're building."
+          )}
         </p>
       </div>
     </div>
