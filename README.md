@@ -1,28 +1,28 @@
 # vibecircle
 
-**See what your friends are building.**
+**See what your team is building.**
 
-A social feed for friend groups who vibe code. Share what you're building, play with each other's apps, and feel the energy of friends creating together.
+A shared feed for teams who vibe code together. The plugin auto-captures what everyone builds — headlines, descriptions, deploy links — so the whole team stays in sync without standups.
 
 ![vibecircle feed](docs/screenshot-feed.jpg)
 
 ## Features
 
-- **Auto-capture** — Claude Code plugin shares screenshots and deploy links as you build
-- **Play with live apps** — interactive embeds of friends' projects right in the feed
-- **AI explains how it's built** — understand any project with one click (BYOK)
+- **Plugin auto-captures** — a smart sentinel detects share-worthy moments and posts them automatically
+- **AI writes the headlines** — plain-English summaries of what was built, generated for every post
+- **Narrative arcs** — follow a feature from first commit to ship, as a coherent story in the feed
 - **Ambient presence** — see who's building right now
-- **Reactions & comments** — friend-group energy
+- **Reactions & comments** — async team energy without the meetings
 
 ## Quick Start
 
 ### Use it
 
 1. **Sign up** at [vibecircle.dev](https://vibecircle.dev)
-2. **Create a circle** and invite your friends
+2. **Create a circle** and invite your team
 3. **Install the plugin**: `/plugin marketplace add miltonian/vibecircle` then `/plugin install vibecircle`
-4. **Set up auth**: `/circle setup`
-5. **Share**: `/share` while coding
+4. **Set up auth**: `/circle setup` (the setup page guides you through this)
+5. **Start coding** — the plugin handles the rest
 
 ### Run it yourself
 
