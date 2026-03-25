@@ -13,15 +13,15 @@ export function AvatarRing({ name, emoji, status, className = "" }: AvatarRingPr
   // Gradient and animation styles based on status
   const ringStyles: Record<string, { gradient: string; animate: boolean }> = {
     building: {
-      gradient: "linear-gradient(135deg, #00ff88, #00ccff)",
+      gradient: "linear-gradient(135deg, #c4956a, #8b6f4e)",
       animate: true,
     },
     online: {
-      gradient: "linear-gradient(135deg, #a855f7, #ff0066)",
+      gradient: "linear-gradient(135deg, #a0443a, #c4956a)",
       animate: false,
     },
     away: {
-      gradient: "linear-gradient(135deg, #3a3a3a, #3a3a3a)",
+      gradient: "linear-gradient(135deg, #4a4238, #4a4238)",
       animate: false,
     },
   }
@@ -53,8 +53,8 @@ export function AvatarRing({ name, emoji, status, className = "" }: AvatarRingPr
 
       <style jsx>{`
         @keyframes ring-pulse {
-          0%, 100% { box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.2); }
-          50% { box-shadow: 0 0 0 4px rgba(0, 255, 136, 0); }
+          0%, 100% { box-shadow: 0 0 0 0 rgba(196, 149, 106, 0.2); }
+          50% { box-shadow: 0 0 0 4px rgba(196, 149, 106, 0); }
         }
         .avatar-ring-pulse {
           animation: ring-pulse 2s ease-in-out infinite;

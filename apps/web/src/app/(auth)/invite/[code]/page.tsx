@@ -100,9 +100,9 @@ export default function InvitePage() {
 
           {error ? (
             <>
-              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[#ff0066]/10">
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10">
                 <svg
-                  className="h-7 w-7 text-[#ff0066]"
+                  className="h-7 w-7 text-destructive"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
