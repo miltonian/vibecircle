@@ -4,8 +4,8 @@
       {
         "hooks": [
           {
-            "type": "command",
-            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/update-presence.js building"
+            "type": "prompt",
+            "prompt": "${CLAUDE_PLUGIN_ROOT}/hooks/session-start.md"
           }
         ]
       }
@@ -14,8 +14,8 @@
       {
         "hooks": [
           {
-            "type": "command",
-            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/update-presence.js away"
+            "type": "prompt",
+            "prompt": "${CLAUDE_PLUGIN_ROOT}/hooks/session-end.md"
           }
         ]
       }
@@ -24,8 +24,8 @@
       {
         "hooks": [
           {
-            "type": "command",
-            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/detect-activity.js"
+            "type": "prompt",
+            "prompt": "${CLAUDE_PLUGIN_ROOT}/hooks/stop-sentinel.md"
           }
         ]
       }
