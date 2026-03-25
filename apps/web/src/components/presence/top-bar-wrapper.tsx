@@ -14,7 +14,7 @@ export function TopBarWrapper() {
   const params = useParams<{ circleId?: string }>()
   const circleId = params?.circleId ?? null
 
-  // Fetch circle name when we have a circleId
+  // Fetch all user's circles
   const { data: circles } = useSWR<
     { id: string; name: string; inviteCode: string }[]
   >("/api/circles", fetcher)
@@ -26,6 +26,7 @@ export function TopBarWrapper() {
       circleName={circle?.name ?? null}
       circleId={circleId}
       inviteCode={circle?.inviteCode ?? null}
+      circles={circles ?? []}
     />
   )
 }
