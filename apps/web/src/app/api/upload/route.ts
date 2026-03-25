@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { auth } from "@/lib/auth"
+import { getAuthUserId } from "@/lib/api-auth"
 import { put } from "@vercel/blob"
 
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024 // 10MB
@@ -7,8 +7,8 @@ const MAX_VIDEO_SIZE = 100 * 1024 * 1024 // 100MB
 
 /** POST /api/upload — upload media to Vercel Blob */
 export async function POST(request: Request) {
-  const session = await auth()
-  if (!session?.user?.id) {
+  const userId = await getAuthUserId(request)
+  if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
