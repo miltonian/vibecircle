@@ -254,6 +254,30 @@ export async function getFeed(
     .where(sql`${comments.postId} IN ${postIds}`)
     .groupBy(comments.postId)
 
+  // Fetch arc post counts for posts that have arcIds
+  const arcIds = [...new Set(feedRows.map((r) => r.arcId).filter(Boolean))] as string[]
+  const arcCountMap = new Map<string, number>()
+
+  if (arcIds.length > 0) {
+    const arcCountRows = await db
+      .select({
+        arcId: posts.arcId,
+        count: count(),
+      })
+      .from(posts)
+      .where(
+        and(
+          eq(posts.circleId, circleId),
+          sql`${posts.arcId} IN ${arcIds}`
+        )
+      )
+      .groupBy(posts.arcId)
+
+    for (const row of arcCountRows) {
+      if (row.arcId) arcCountMap.set(row.arcId, Number(row.count))
+    }
+  }
+
   // Build lookup maps
   const reactionMap = new Map<string, Record<string, number>>()
   for (const r of reactionRows) {
@@ -279,6 +303,7 @@ export async function getFeed(
     arcId: row.arcId,
     arcTitle: row.arcTitle,
     arcSequence: row.arcSequence,
+    arcTotalPosts: row.arcId ? (arcCountMap.get(row.arcId) ?? 1) : null,
     createdAt: row.createdAt,
     author: {
       id: row.authorId,
@@ -366,6 +391,50 @@ export async function getArcs(circleId: string) {
   }
 
   return Array.from(arcMap.values())
+}
+
+/** Get all frames for a timelapse — posts in an arc ordered by sequence */
+export async function getTimelapseFrames(circleId: string, arcId: string) {
+  const rows = await db
+    .select({
+      postId: posts.id,
+      headline: posts.headline,
+      media: posts.media,
+      type: posts.type,
+      createdAt: posts.createdAt,
+      arcSequence: posts.arcSequence,
+      arcTitle: posts.arcTitle,
+      authorName: users.name,
+      authorAvatarUrl: users.avatarUrl,
+      authorImage: users.image,
+    })
+    .from(posts)
+    .innerJoin(users, eq(posts.authorId, users.id))
+    .where(
+      and(
+        eq(posts.circleId, circleId),
+        eq(posts.arcId, arcId)
+      )
+    )
+    .orderBy(posts.arcSequence)
+
+  if (rows.length === 0) return null
+
+  return {
+    arcTitle: rows[0].arcTitle ?? "Untitled Arc",
+    frames: rows.map((row) => ({
+      postId: row.postId,
+      headline: row.headline,
+      media: row.media,
+      type: row.type,
+      createdAt: row.createdAt,
+      arcSequence: row.arcSequence ?? 0,
+      author: {
+        name: row.authorName,
+        avatarUrl: row.authorAvatarUrl ?? row.authorImage,
+      },
+    })),
+  }
 }
 
 // ── Presence Queries ─────────────────────────────────────────────────────────
