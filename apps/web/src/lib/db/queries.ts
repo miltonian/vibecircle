@@ -150,6 +150,10 @@ export async function createPost(
     body?: string | null
     media?: unknown[] | null
     metadata?: Record<string, unknown> | null
+    headline?: string | null
+    arcId?: string | null
+    arcTitle?: string | null
+    arcSequence?: number | null
   }
 ) {
   const [post] = await db
@@ -161,6 +165,10 @@ export async function createPost(
       body: data.body ?? null,
       media: data.media ?? null,
       metadata: data.metadata ?? null,
+      headline: data.headline ?? null,
+      arcId: data.arcId ?? null,
+      arcTitle: data.arcTitle ?? null,
+      arcSequence: data.arcSequence ?? null,
     })
     .returning()
 
@@ -198,6 +206,10 @@ export async function getFeed(
       body: posts.body,
       media: posts.media,
       metadata: posts.metadata,
+      headline: posts.headline,
+      arcId: posts.arcId,
+      arcTitle: posts.arcTitle,
+      arcSequence: posts.arcSequence,
       createdAt: posts.createdAt,
       authorId: posts.authorId,
       authorName: users.name,
@@ -263,6 +275,10 @@ export async function getFeed(
     body: row.body,
     media: row.media,
     metadata: row.metadata,
+    headline: row.headline,
+    arcId: row.arcId,
+    arcTitle: row.arcTitle,
+    arcSequence: row.arcSequence,
     createdAt: row.createdAt,
     author: {
       id: row.authorId,
@@ -313,6 +329,43 @@ export async function getPost(postId: string) {
       avatarUrl: row.authorAvatarUrl ?? row.authorImage,
     },
   }
+}
+
+/** Get active arcs for a circle — grouped by arcId with post count and latest timestamp */
+export async function getArcs(circleId: string) {
+  const rows = await db
+    .select({
+      arcId: posts.arcId,
+      arcTitle: posts.arcTitle,
+      authorId: posts.authorId,
+      authorName: users.name,
+      createdAt: posts.createdAt,
+    })
+    .from(posts)
+    .innerJoin(users, eq(posts.authorId, users.id))
+    .where(and(eq(posts.circleId, circleId), sql`${posts.arcId} IS NOT NULL`))
+    .orderBy(desc(posts.createdAt))
+
+  const arcMap = new Map<string, { arcId: string; arcTitle: string | null; authorId: string; authorName: string | null; postCount: number; latestAt: Date | null }>()
+
+  for (const row of rows) {
+    if (!row.arcId) continue
+    const existing = arcMap.get(row.arcId)
+    if (existing) {
+      existing.postCount++
+    } else {
+      arcMap.set(row.arcId, {
+        arcId: row.arcId,
+        arcTitle: row.arcTitle,
+        authorId: row.authorId,
+        authorName: row.authorName,
+        postCount: 1,
+        latestAt: row.createdAt,
+      })
+    }
+  }
+
+  return Array.from(arcMap.values())
 }
 
 // ── Presence Queries ─────────────────────────────────────────────────────────
