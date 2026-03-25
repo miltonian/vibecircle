@@ -30,6 +30,7 @@ export interface FeedPost {
   arcId: string | null
   arcTitle: string | null
   arcSequence: number | null
+  arcTotalPosts: number | null
   media: PostMedia[] | null
   metadata: PostMetadata | null
   createdAt: string
