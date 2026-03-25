@@ -25,6 +25,9 @@ function isPublicPath(pathname: string): boolean {
   if (pathname === "/api/upload") {
     return true
   }
+  if (pathname === "/api/circles/invite-lookup") {
+    return true
+  }
 
   // Static assets and Next.js internals
   if (
