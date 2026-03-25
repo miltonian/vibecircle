@@ -26,6 +26,10 @@ export interface FeedPost {
   id: string
   type: "shipped" | "wip" | "video" | "live" | "ambient"
   body: string | null
+  headline: string | null
+  arcId: string | null
+  arcTitle: string | null
+  arcSequence: number | null
   media: PostMedia[] | null
   metadata: PostMetadata | null
   createdAt: string
