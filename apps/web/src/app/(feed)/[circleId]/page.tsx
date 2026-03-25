@@ -10,8 +10,10 @@ import { eq, and } from "drizzle-orm"
 
 export default async function CircleFeedPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ circleId: string }>
+  searchParams: Promise<{ skipped?: string }>
 }) {
   const session = await auth()
   if (!session?.user?.id) {
@@ -51,8 +53,9 @@ export default async function CircleFeedPage({
 
   const hasToken = !!existingToken
 
-  // If owner and no token, redirect to setup
-  if (!hasToken) {
+  // If owner and no token, redirect to setup (unless they skipped)
+  const { skipped } = await searchParams
+  if (!hasToken && !skipped) {
     const [membership] = await db
       .select({ role: circleMembers.role })
       .from(circleMembers)

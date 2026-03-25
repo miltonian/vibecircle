@@ -94,7 +94,7 @@ export function PluginSetupFlow({ circleId, inviteCode }: PluginSetupFlowProps) 
           </div>
 
           <button
-            onClick={() => router.push(`/${circleId}`)}
+            onClick={() => router.push(`/${circleId}?skipped=1`)}
             className="mt-6 text-xs text-text-dim hover:text-text-muted"
           >
             Skip for now — go to feed →
