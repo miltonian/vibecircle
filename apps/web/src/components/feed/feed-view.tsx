@@ -53,9 +53,9 @@ function EmptyFeed() {
   return (
     <div className="flex min-h-[30vh] items-center justify-center">
       <div className="text-center">
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-bg-elevated">
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-border-dim bg-bg-card">
           <svg
-            className="h-8 w-8 text-text-muted"
+            className="h-8 w-8 text-accent-green/60"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -88,24 +88,26 @@ function FeedSkeleton() {
       {[0, 1, 2].map((i) => (
         <div
           key={i}
-          className="animate-pulse rounded-[20px] border border-border-subtle bg-bg-card p-5"
+          className="animate-pulse rounded-[18px] border border-border-subtle bg-bg-card p-[18px]"
         >
           {/* Header skeleton */}
           <div className="flex items-center gap-3">
-            <div className="h-[38px] w-[38px] rounded-full bg-bg-elevated" />
+            <div className="h-[42px] w-[42px] rounded-full bg-bg-elevated" />
             <div className="flex-1">
-              <div className="h-4 w-32 rounded bg-bg-elevated" />
-              <div className="mt-1.5 h-3 w-20 rounded bg-bg-elevated" />
+              <div className="h-4 w-36 rounded bg-bg-elevated" />
+              <div className="mt-1.5 h-3 w-24 rounded bg-bg-elevated" />
             </div>
             <div className="h-5 w-16 rounded-full bg-bg-elevated" />
           </div>
-          {/* Body skeleton */}
-          <div className="mt-4 space-y-2">
-            <div className="h-3.5 w-full rounded bg-bg-elevated" />
-            <div className="h-3.5 w-3/4 rounded bg-bg-elevated" />
+          {/* Headline skeleton */}
+          <div className="mt-4">
+            <div className="h-5 w-3/4 rounded bg-bg-elevated" />
           </div>
-          {/* Media skeleton */}
-          <div className="mt-3 aspect-video w-full rounded-2xl bg-bg-elevated" />
+          {/* Body skeleton */}
+          <div className="mt-2 space-y-2">
+            <div className="h-3.5 w-full rounded bg-bg-elevated" />
+            <div className="h-3.5 w-2/3 rounded bg-bg-elevated" />
+          </div>
         </div>
       ))}
     </div>

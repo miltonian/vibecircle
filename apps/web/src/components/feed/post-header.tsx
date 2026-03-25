@@ -18,20 +18,37 @@ function timeAgo(dateStr: string): string {
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric" })
 }
 
-/** Pick a consistent gradient for an author based on their name */
+/** Pick a consistent warm-toned gradient for an author based on their name */
 function avatarGradient(name: string): string {
   const gradients = [
-    "linear-gradient(135deg, #00ff88, #00ccff)",
-    "linear-gradient(135deg, #a855f7, #ff0066)",
-    "linear-gradient(135deg, #fbbf24, #ff0066)",
-    "linear-gradient(135deg, #00ccff, #a855f7)",
-    "linear-gradient(135deg, #00ff88, #a855f7)",
+    "linear-gradient(135deg, #c4956a, #d4a574)", // copper to light copper
+    "linear-gradient(135deg, #a0443a, #c4956a)", // terracotta to copper
+    "linear-gradient(135deg, #d4a574, #b8860b)", // light copper to amber
+    "linear-gradient(135deg, #c4956a, #a0443a)", // copper to terracotta
+    "linear-gradient(135deg, #b8860b, #d4a574)", // amber to light copper
   ]
   let hash = 0
   for (let i = 0; i < name.length; i++) {
     hash = name.charCodeAt(i) + ((hash << 5) - hash)
   }
   return gradients[Math.abs(hash) % gradients.length]
+}
+
+/** Narrative verb based on post type */
+function narrativeVerb(type: FeedPost["type"]): string {
+  switch (type) {
+    case "shipped":
+      return "shipped"
+    case "live":
+      return "went live"
+    case "wip":
+      return "is building"
+    case "video":
+      return "shared"
+    case "ambient":
+    default:
+      return "posted"
+  }
 }
 
 const typeBadgeConfig: Record<
@@ -41,22 +58,22 @@ const typeBadgeConfig: Record<
   shipped: {
     label: "SHIPPED",
     className:
-      "bg-[rgba(168,85,247,0.15)] text-[#a855f7] border-[rgba(168,85,247,0.25)]",
+      "bg-accent-green/15 text-accent-green border-accent-green/25",
   },
   wip: {
     label: "WIP",
     className:
-      "bg-[rgba(251,191,36,0.12)] text-[#fbbf24] border-[rgba(251,191,36,0.2)]",
+      "bg-accent-pink/12 text-accent-pink border-accent-pink/20",
   },
   live: {
     label: "LIVE",
     className:
-      "live-badge bg-gradient-to-r from-[#00ff88] to-[#00ccff] text-black border-transparent font-bold",
+      "bg-accent-green/20 text-accent-green border-accent-green/30 font-bold",
   },
   video: {
     label: "VIDEO",
     className:
-      "bg-[rgba(255,0,102,0.12)] text-[#ff0066] border-[rgba(255,0,102,0.2)]",
+      "bg-accent-pink/12 text-accent-pink border-accent-pink/20",
   },
   ambient: {
     label: "UPDATE",
@@ -70,22 +87,21 @@ interface PostHeaderProps {
 }
 
 export function PostHeader({ post }: PostHeaderProps) {
-  const { author, createdAt, type, metadata } = post
+  const { author, createdAt, type, arcTitle } = post
   const badge = typeBadgeConfig[type] ?? typeBadgeConfig.ambient
   const gradient = avatarGradient(author.name ?? "?")
+  const verb = narrativeVerb(type)
 
   return (
     <div className="flex items-center justify-between gap-3">
       {/* Left: Avatar + Author info */}
       <div className="flex items-center gap-3 min-w-0">
-        {/* Avatar with gradient ring */}
+        {/* Avatar with warm gradient ring */}
         <div className="relative shrink-0">
-          {/* Outer gradient ring */}
           <div
             className="flex h-[42px] w-[42px] items-center justify-center rounded-full p-[2px]"
             style={{ background: gradient }}
           >
-            {/* Inner circle */}
             {author.avatarUrl ? (
               <img
                 src={author.avatarUrl}
@@ -100,29 +116,28 @@ export function PostHeader({ post }: PostHeaderProps) {
           </div>
         </div>
 
-        {/* Author name + timestamp + tool badge */}
+        {/* Narrative header + subheader */}
         <div className="min-w-0">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <span className="truncate font-display text-[14.5px] font-bold leading-tight text-text-primary">
               {author.name ?? "Anonymous"}
             </span>
-            <span className="shrink-0 text-[11px] text-text-dim">
-              {timeAgo(createdAt)}
+            <span className="shrink-0 text-[13px] text-text-muted">
+              {verb}
             </span>
           </div>
-          {/* Tech tags / tool badge */}
-          {metadata?.tech_tags && metadata.tech_tags.length > 0 && (
-            <div className="mt-0.5 flex items-center gap-1.5">
-              {metadata.tech_tags.slice(0, 3).map((tag) => (
-                <span
-                  key={tag}
-                  className="rounded bg-[rgba(255,255,255,0.04)] px-1.5 py-0.5 font-code text-[10px] text-text-muted"
-                >
-                  {tag}
+          {/* Subheader: timestamp + arc context */}
+          <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-text-dim">
+            <span>{timeAgo(createdAt)}</span>
+            {arcTitle && (
+              <>
+                <span className="text-text-dim/50">·</span>
+                <span className="truncate text-accent-green/80">
+                  {arcTitle}
                 </span>
-              ))}
-            </div>
-          )}
+              </>
+            )}
+          </div>
         </div>
       </div>
 

@@ -7,7 +7,7 @@ import { PostBody } from "./post-body"
 import { ImageCarousel } from "./image-carousel"
 import { VideoPreview } from "./video-preview"
 import { LiveEmbed } from "./live-embed"
-import { CommitBar } from "./commit-bar"
+import { ArcIndicator } from "./arc-indicator"
 import { ReactionBar } from "@/components/reactions/reaction-bar"
 import { CommentList } from "@/components/comments/comment-list"
 
@@ -38,18 +38,18 @@ export function PostCard({ post, index, userId }: PostCardProps) {
     <article
       className={`post-card rounded-[18px] border bg-bg-card p-[18px] transition-all duration-300 ${
         isLive
-          ? "border-[rgba(0,255,136,0.15)] shadow-[0_0_40px_rgba(0,255,136,0.04)]"
-          : "border-[rgba(255,255,255,0.04)] hover:border-[rgba(255,255,255,0.08)] hover:shadow-[0_4px_24px_rgba(0,0,0,0.3),0_0_20px_rgba(255,255,255,0.02)]"
+          ? "border-accent-green/15 shadow-[0_0_30px_rgba(196,149,106,0.06)]"
+          : "border-border-subtle hover:border-border-dim hover:shadow-[0_4px_24px_rgba(0,0,0,0.3)]"
       }`}
       style={{
         animation: `post-fade-in 0.5s ease-out ${delay}ms both`,
       }}
     >
-      {/* Header: avatar, name, timestamp, type badge */}
+      {/* Header: avatar, narrative, timestamp, type badge */}
       <PostHeader post={post} />
 
-      {/* Body text */}
-      <PostBody body={post.body} />
+      {/* Body: headline + description */}
+      <PostBody headline={post.headline} body={post.body} />
 
       {/* Media based on post type */}
       {post.type === "live" && post.metadata?.deploy_url ? (
@@ -60,8 +60,10 @@ export function PostCard({ post, index, userId }: PostCardProps) {
         <ImageCarousel images={images} />
       ) : null}
 
-      {/* Commit bar */}
-      <CommitBar metadata={post.metadata} />
+      {/* Arc indicator */}
+      {post.arcTitle && post.arcSequence != null && (
+        <ArcIndicator arcTitle={post.arcTitle} arcSequence={post.arcSequence} />
+      )}
 
       {/* Reactions */}
       <div className="mt-3 border-t border-border-dim pt-3">
