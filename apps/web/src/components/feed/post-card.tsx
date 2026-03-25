@@ -36,7 +36,7 @@ export function PostCard({ post, index, userId }: PostCardProps) {
 
   return (
     <article
-      className={`post-card rounded-[18px] border bg-bg-card p-[18px] transition-all duration-300 ${
+      className={`post-card overflow-visible rounded-[18px] border bg-bg-card p-[18px] transition-all duration-300 ${
         isLive
           ? "border-accent-green/15 shadow-[0_0_30px_rgba(196,149,106,0.06)]"
           : "border-border-subtle hover:border-border-dim hover:shadow-[0_4px_24px_rgba(0,0,0,0.3)]"
@@ -66,7 +66,7 @@ export function PostCard({ post, index, userId }: PostCardProps) {
       )}
 
       {/* Reactions */}
-      <div className="mt-3 border-t border-border-dim pt-3">
+      <div className="relative mt-3 overflow-visible border-t border-border-dim pt-3">
         <ReactionBar
           postId={post.id}
           initialReactions={initialReactions}

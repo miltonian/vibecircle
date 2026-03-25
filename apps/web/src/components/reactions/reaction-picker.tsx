@@ -37,7 +37,7 @@ export function ReactionPicker({ onSelect, onClose }: ReactionPickerProps) {
   return (
     <div
       ref={ref}
-      className="absolute bottom-full left-0 z-50 mb-2 rounded-xl border border-border-subtle bg-bg-card p-2 shadow-lg"
+      className="absolute bottom-full left-0 z-50 mb-2 min-w-[200px] rounded-xl border border-border-subtle bg-bg-card p-2 shadow-lg"
     >
       <div className="grid grid-cols-5 gap-1">
         {EMOJIS.map((emoji) => (
