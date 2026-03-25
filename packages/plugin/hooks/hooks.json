@@ -2,30 +2,34 @@
   "hooks": {
     "SessionStart": [
       {
+        "matcher": "startup|resume",
         "hooks": [
           {
-            "type": "prompt",
-            "prompt": "${CLAUDE_PLUGIN_ROOT}/hooks/session-start.md"
+            "type": "command",
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/update-presence.js building"
           }
         ]
       }
     ],
     "SessionEnd": [
       {
+        "matcher": "*",
         "hooks": [
           {
-            "type": "prompt",
-            "prompt": "${CLAUDE_PLUGIN_ROOT}/hooks/session-end.md"
+            "type": "command",
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/update-presence.js away"
           }
         ]
       }
     ],
     "Stop": [
       {
+        "matcher": "*",
         "hooks": [
           {
             "type": "prompt",
-            "prompt": "${CLAUDE_PLUGIN_ROOT}/hooks/stop-sentinel.md"
+            "prompt": "You are the vibecircle sentinel. Check if the user has vibecircle configured by running: node ${CLAUDE_PLUGIN_ROOT}/scripts/lib/config.js check\n\nIf not configured, return 'approve' immediately.\n\nIf configured, check if autoShare is enabled: node ${CLAUDE_PLUGIN_ROOT}/scripts/lib/config.js get autoShare\n\nIf autoShare is false, return 'approve'.\n\nOtherwise, evaluate if something share-worthy just happened. Run: git diff --stat && git status --short\n\nSuggest sharing if ANY: new files created, 2+ files modified, a feature/component/page was built, something was deployed, or the conversation involved building something substantial.\n\nStay quiet if ONLY: config/deps/lockfile changes, just reading/researching, or Q&A with no code.\n\nIf share-worthy: read ~/.vibecircle/session.json if it exists. Write a headline (plain English, PM-readable) and body (2-3 sentences, non-technical). Try to screenshot via Playwright MCP if a URL is known, otherwise ask user for screenshot. Show preview and ask: Share? [Y]es [E]dit [S]kip [📸 screenshot]. Post via: node ${CLAUDE_PLUGIN_ROOT}/scripts/post-to-circle.js --type <type> --body \"<body>\" --headline \"<headline>\" --arc-id \"<id>\" --arc-title \"<title>\" --arc-sequence <n>\n\nIf not share-worthy, return 'approve' silently.",
+            "timeout": 30
           }
         ]
       }

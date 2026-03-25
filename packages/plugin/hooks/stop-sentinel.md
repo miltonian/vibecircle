@@ -6,76 +6,79 @@ allowed-tools: Bash, Read, Write, mcp__plugin_playwright_playwright__browser_nav
 
 # Vibecircle Sentinel
 
-After Claude finishes responding, silently evaluate whether something share-worthy happened. Do NOT output anything to the user unless you decide to propose sharing.
+After Claude finishes responding, evaluate whether something share-worthy happened. Be GENEROUS — it's better to suggest and let the user skip than to miss interesting moments. The user always has final say.
 
-## 1. Check configuration
+## 1. Quick checks
 
 Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/lib/config.js check`
-
-If output starts with "not-configured", stop immediately.
-
-## 2. Check if autoShare is enabled
+If "not-configured", stop.
 
 Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/lib/config.js get autoShare`
+If "false", stop.
 
-If output is "false", stop.
+## 2. Should we suggest sharing?
 
-## 3. Read session context
+Consider BOTH git activity AND conversation context. You don't need commits to share — if Claude just helped build something substantial, that's share-worthy.
 
-Read `~/.vibecircle/session.json` if it exists. If it doesn't exist, stop.
+**Suggest sharing if ANY of these are true:**
+- New files were created (check `git status` for untracked files)
+- 2+ files were modified (check `git diff --stat`)
+- A feature, component, or page was built or significantly changed
+- Something was deployed
+- A meaningful bug was fixed
+- The conversation involved building something the user would want to show others
 
-## 4. Analyze recent activity
+**Stay quiet if ALL of these are true:**
+- Only config/dependency/lockfile changes
+- Only reading files or researching (no code written)
+- The conversation was just Q&A with no implementation
 
-Run `git diff --stat HEAD~3` and `git log --oneline -5` to see what changed recently.
+Run `git diff --stat` and `git status --short` to check. But also consider what just happened in the conversation — you have that context.
 
-Score the shareability:
-- **High**: New files in `components/`, `pages/`, `app/` directories (UI work), OR `vercel deploy` or deploy-related activity, OR a significant new feature (5+ files across multiple directories)
-- **Medium**: Several files changed but mostly in one area, OR test files added
-- **Low**: Config changes, dependency updates, small fixes
-- **Skip**: No git changes, or only `.lock` files / `.env` changes
+## 3. Update session context
 
-If score is Low or Skip, silently update the session context (step 5) and stop.
+Read `~/.vibecircle/session.json` if it exists. If it doesn't, create it:
 
-## 5. Update session context
+```json
+{
+  "sessionId": "<uuid>",
+  "projectName": "<from package.json or git remote>",
+  "projectDir": "<cwd>",
+  "currentWork": "<what's being built>",
+  "activeArc": null,
+  "milestones": [],
+  "startedAt": "<now>"
+}
+```
 
-Read the current `~/.vibecircle/session.json`. Update:
-- `currentWork`: Brief description of what's being built based on recent git activity and conversation context
-- `activeArc`: If the work is a continuation of the same feature, keep the existing arc. If it's clearly new work, create a new arc with a new UUID and descriptive title.
-- Increment `activeArc.sequence` if continuing an arc.
+Update `currentWork` based on what just happened. If the work continues a previous arc, keep it. If it's clearly new work, create a new arc with a UUID and descriptive title.
 
-Write the updated file back.
+If you decided NOT to suggest sharing, stop here after updating context.
 
-If score was Low or Skip, stop here.
+## 4. Ghost-Writer — draft the post
 
-## 6. Ghost-Writer — draft the post
+Write:
 
-Based on the git diff, session context, and conversation context, write:
-
-1. **headline**: One line, plain English, no jargon. A PM should understand it.
+1. **headline**: One line, plain English. A PM should understand it.
    - Good: "Built a settings page with dark mode toggle"
    - Bad: "Refactored SettingsProvider component tree"
 
-2. **body**: 2-3 sentences describing what was built and why it matters. Write for a non-technical audience.
-   - Good: "Users can now customize their experience — toggle dark mode, set notification frequency, and manage connected accounts. Includes automatic system preference detection."
-   - Bad: "Added DarkModeContext with useMediaQuery hook for prefers-color-scheme detection."
+2. **body**: 2-3 sentences about what was built and why it matters. Non-technical audience.
 
-3. **type**: "shipped" if a deploy happened, "wip" otherwise
+3. **type**: "shipped" if deployed, "wip" otherwise
 
-4. **media**: If UI work was detected (files changed in components/, pages/, app/ directories), capture a screenshot:
+## 5. Screenshot
 
-   **Screenshot strategy** (try in order, do NOT blindly scan ports):
-   a. **Check conversation context.** If a dev server was started in this session, you know the URL and port. Use that.
-   b. **Detect this project's dev server.** Run `lsof -i -P -n | grep LISTEN | grep -E "node|bun|next"` and match to the current working directory. Only use a localhost URL you can confirm belongs to THIS project.
-   c. **Use the production URL.** Read `~/.vibecircle/config.json` for `apiUrl` — that's the production site. A production screenshot is better than screenshotting the wrong app.
-   d. **Screenshot with Playwright MCP:**
-      - Call `mcp__plugin_playwright_playwright__browser_navigate` with the URL
-      - Call `mcp__plugin_playwright_playwright__browser_take_screenshot` with `type: "jpeg"` and `filename: "/tmp/vibecircle-screenshot-{timestamp}.jpeg"`
-      - Save the output file path
-   e. If nothing works, skip — screenshots are optional.
+Try to capture a screenshot, but don't block on it:
 
-## 7. Show preview and ask for approval
+a. **If you know a URL from this session** (dev server, preview URL), use Playwright MCP to screenshot it.
+b. **If not, try the production URL** from `~/.vibecircle/config.json` `apiUrl` field.
+c. **If Playwright works**, save to `/tmp/vibecircle-screenshot-{timestamp}.jpeg`.
+d. **If it fails or there's no good URL**, ask the user: "Want to attach a screenshot? Drop a file path or say 'skip'."
 
-Show the user a preview:
+Don't spend more than one attempt on auto-screenshot. If it doesn't work, ask.
+
+## 6. Show preview
 
 ```
 vibecircle — Ready to share:
@@ -83,19 +86,18 @@ vibecircle — Ready to share:
   **[headline]**
   [body]
 
-  [📸 Screenshot attached · Part of "[arcTitle]"]
+  [📸 Screenshot attached (or "No screenshot") · Part of "[arcTitle]" (if applicable)]
 
-Share this? [Y]es · [E]dit · [S]kip
+Share? [Y]es · [E]dit · [S]kip · [📸 Add screenshot]
 ```
 
-Wait for the user's response:
-- **Y/yes**: Post it (step 8)
-- **E/edit**: Ask what they'd like to change, update the headline/body, then post
-- **S/skip/no**: Add to milestones as "skipped", stop
+- **Y/yes**: Post it
+- **E/edit**: Ask what to change, update, then post
+- **S/skip/no**: Stop
+- **📸/screenshot**: Ask for a file path, attach it, then post
 
-## 8. Post to circle
+## 7. Post
 
-Run:
 ```bash
 node ${CLAUDE_PLUGIN_ROOT}/scripts/post-to-circle.js \
   --type <type> \
@@ -106,8 +108,6 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/post-to-circle.js \
   --arc-sequence <arcSequence>
 ```
 
-If a screenshot was captured, add: `--screenshot <path>`
+Add `--screenshot <path>` if one was captured.
 
-If successful, add the headline to `milestones` in session.json.
-
-Tell the user: "Shared to your circle!"
+Update `~/.vibecircle/session.json` milestones. Tell the user: "Shared to your circle!"

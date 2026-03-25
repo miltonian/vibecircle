@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server"
-import { auth } from "@/lib/auth"
+import { getAuthUserId } from "@/lib/api-auth"
 import { getCirclePresence, getRecentActivity } from "@/lib/db/queries"
 
 /** GET /api/circles/[id]/presence — get presence for all circle members */
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await auth()
-  if (!session?.user?.id) {
+  const userId = await getAuthUserId(request)
+  if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
