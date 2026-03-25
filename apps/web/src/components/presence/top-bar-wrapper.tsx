@@ -16,7 +16,7 @@ export function TopBarWrapper() {
 
   // Fetch circle name when we have a circleId
   const { data: circles } = useSWR<
-    { id: string; name: string }[]
+    { id: string; name: string; inviteCode: string }[]
   >("/api/circles", fetcher)
 
   const circle = circles?.find((c) => c.id === circleId)
@@ -25,6 +25,7 @@ export function TopBarWrapper() {
     <TopBar
       circleName={circle?.name ?? null}
       circleId={circleId}
+      inviteCode={circle?.inviteCode ?? null}
     />
   )
 }

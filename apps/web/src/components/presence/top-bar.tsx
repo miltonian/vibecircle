@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useCallback } from "react"
 import Link from "next/link"
 import { usePresence } from "@/hooks/use-presence"
 import { AvatarRing } from "./avatar-ring"
@@ -8,10 +9,24 @@ import { ActivityTicker } from "./activity-ticker"
 interface TopBarProps {
   circleName: string | null
   circleId: string | null
+  inviteCode: string | null
 }
 
-export function TopBar({ circleName, circleId }: TopBarProps) {
+export function TopBar({ circleName, circleId, inviteCode }: TopBarProps) {
+  const [copied, setCopied] = useState(false)
   const { data } = usePresence(circleId)
+
+  const inviteUrl = inviteCode
+    ? `${typeof window !== "undefined" ? window.location.origin : "https://vibecircle.dev"}/invite/${inviteCode}`
+    : null
+
+  const copyInvite = useCallback(() => {
+    if (inviteUrl) {
+      navigator.clipboard.writeText(inviteUrl)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }, [inviteUrl])
 
   const members = data?.members ?? []
   const activity = data?.activity ?? []
@@ -64,12 +79,20 @@ export function TopBar({ circleName, circleId }: TopBarProps) {
             )}
           </div>
 
-          {/* Right: Circle badge + new circle link */}
+          {/* Right: Circle badge + invite + new circle */}
           <div className="flex items-center gap-2">
             {circleName && (
               <span className="rounded-full border border-border-subtle bg-bg-elevated px-3 py-1 text-xs font-medium text-text-secondary">
                 {circleName}
               </span>
+            )}
+            {inviteUrl && (
+              <button
+                onClick={copyInvite}
+                className="rounded-full border border-accent-green/25 bg-accent-green/5 px-3 py-1 text-xs font-medium text-accent-green transition-colors hover:bg-accent-green/10"
+              >
+                {copied ? "Link copied!" : "Invite"}
+              </button>
             )}
             <Link
               href="/new-circle"
