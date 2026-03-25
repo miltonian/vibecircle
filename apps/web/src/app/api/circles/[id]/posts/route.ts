@@ -7,16 +7,6 @@ import { getAuthUserId } from "@/lib/api-auth"
 
 const VALID_TYPES = ["shipped", "wip", "video", "live", "ambient"] as const
 
-/** Required metadata keys per post type */
-const REQUIRED_METADATA: Record<string, string[]> = {
-  shipped: ["repo_url", "deploy_url", "commits_count", "files_changed"],
-  wip: ["repo_url"],
-  video: [],
-  live: ["deploy_url"],
-  ambient: ["commits_count", "files_changed"],
-}
-
-/** POST /api/circles/[id]/posts — create a post in a circle */
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -28,7 +18,6 @@ export async function POST(
 
   const { id: circleId } = await params
 
-  // Verify user is a member of this circle
   const [membership] = await db
     .select()
     .from(circleMembers)
@@ -49,7 +38,6 @@ export async function POST(
 
   const body = await request.json()
 
-  // Validate type
   if (!body.type || !VALID_TYPES.includes(body.type)) {
     return NextResponse.json(
       { error: `Invalid post type. Must be one of: ${VALID_TYPES.join(", ")}` },
@@ -57,26 +45,15 @@ export async function POST(
     )
   }
 
-  // Validate required metadata keys per type
-  const requiredKeys = REQUIRED_METADATA[body.type] ?? []
-  if (requiredKeys.length > 0) {
-    const metadata = body.metadata ?? {}
-    const missing = requiredKeys.filter((key) => !(key in metadata))
-    if (missing.length > 0) {
-      return NextResponse.json(
-        {
-          error: `Missing required metadata for type "${body.type}": ${missing.join(", ")}`,
-        },
-        { status: 400 }
-      )
-    }
-  }
-
   const post = await createPost(circleId, userId, {
     type: body.type,
     body: body.body ?? null,
     media: body.media ?? null,
     metadata: body.metadata ?? null,
+    headline: body.headline ?? null,
+    arcId: body.arcId ?? null,
+    arcTitle: body.arcTitle ?? null,
+    arcSequence: body.arcSequence != null ? Number(body.arcSequence) : null,
   })
 
   return NextResponse.json(post, { status: 201 })
