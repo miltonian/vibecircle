@@ -1,7 +1,7 @@
 ---
 name: share
 description: Share what you're building with your vibecircle
-allowed-tools: Bash, Read, Write
+allowed-tools: Bash, Read, Write, mcp__plugin_playwright_playwright__browser_navigate, mcp__plugin_playwright_playwright__browser_take_screenshot
 user-invocable: true
 ---
 
@@ -21,9 +21,15 @@ Read `~/.vibecircle/session.json` if it exists. This gives you context about the
 
 ## 3. Capture a screenshot
 
-Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/capture-screenshot.js`
+Try to capture a screenshot of what the user is building:
 
-Save the output path for later. Don't worry if it's empty.
+a. Check if a dev server is running by trying `curl -s -o /dev/null -w "%{http_code}" http://localhost:3000` (also try ports 3001, 5173, 8080). If any returns 200, use that URL.
+b. If no dev server, check for a Vercel deploy URL by running `vercel ls --json 2>/dev/null | head -1` and extracting the URL. Or check for a known production URL in the project's package.json homepage field.
+c. If you found a URL, use Playwright MCP to screenshot it:
+   - Call `mcp__plugin_playwright_playwright__browser_navigate` with the URL
+   - Call `mcp__plugin_playwright_playwright__browser_take_screenshot` with `type: "jpeg"` and `filename: "/tmp/vibecircle-share-{timestamp}.jpeg"`
+   - Save the output file path for step 6
+d. If no URL found or Playwright fails, skip the screenshot — it's optional. Don't worry about it.
 
 ## 4. Generate the post draft
 

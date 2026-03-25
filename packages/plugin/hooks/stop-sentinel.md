@@ -1,7 +1,7 @@
 ---
 name: stop-sentinel
 description: Detect share-worthy moments and draft posts for vibecircle
-allowed-tools: Bash, Read, Write
+allowed-tools: Bash, Read, Write, mcp__plugin_playwright_playwright__browser_navigate, mcp__plugin_playwright_playwright__browser_take_screenshot
 ---
 
 # Vibecircle Sentinel
@@ -61,9 +61,16 @@ Based on the git diff, session context, and conversation context, write:
 
 3. **type**: "shipped" if a deploy happened, "wip" otherwise
 
-4. **media**: If UI work was detected, try to capture a screenshot:
-   Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/capture-screenshot.js`
-   Save the output path if non-empty.
+4. **media**: If UI work was detected (files changed in components/, pages/, app/ directories), capture a screenshot:
+
+   **Screenshot strategy** (try in order):
+   a. Check if a dev server is running by trying `curl -s -o /dev/null -w "%{http_code}" http://localhost:3000` (also try ports 3001, 5173, 8080). If any returns 200, use that URL.
+   b. If no dev server, check for a Vercel deploy URL by running `vercel ls --json 2>/dev/null | head -1` and extracting the URL.
+   c. If you found a URL, use Playwright MCP to screenshot it:
+      - Call `mcp__plugin_playwright_playwright__browser_navigate` with the URL
+      - Call `mcp__plugin_playwright_playwright__browser_take_screenshot` with `type: "jpeg"` and `filename: "/tmp/vibecircle-screenshot-{timestamp}.jpeg"`
+      - Save the output file path
+   d. If no URL found or Playwright fails, skip the screenshot — it's optional.
 
 ## 7. Show preview and ask for approval
 
