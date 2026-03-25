@@ -13,7 +13,7 @@ const { post, uploadFile } = require("./lib/api-client");
 
 /** Parse command-line arguments */
 function parseArgs(argv) {
-  const args = { type: "wip", body: "", screenshot: "" };
+  const args = { type: "wip", body: "", screenshot: "", headline: "", arcId: "", arcTitle: "", arcSequence: "" };
   for (let i = 2; i < argv.length; i++) {
     if (argv[i] === "--type" && argv[i + 1]) {
       args.type = argv[++i];
@@ -21,6 +21,14 @@ function parseArgs(argv) {
       args.body = argv[++i];
     } else if (argv[i] === "--screenshot" && argv[i + 1]) {
       args.screenshot = argv[++i];
+    } else if (argv[i] === "--headline" && argv[i + 1]) {
+      args.headline = argv[++i];
+    } else if (argv[i] === "--arc-id" && argv[i + 1]) {
+      args.arcId = argv[++i];
+    } else if (argv[i] === "--arc-title" && argv[i + 1]) {
+      args.arcTitle = argv[++i];
+    } else if (argv[i] === "--arc-sequence" && argv[i + 1]) {
+      args.arcSequence = argv[++i];
     }
   }
   return args;
@@ -91,6 +99,10 @@ async function main() {
     body: args.body || null,
     media: media.length > 0 ? media : null,
     metadata: metadata,
+    headline: args.headline || null,
+    arcId: args.arcId || null,
+    arcTitle: args.arcTitle || null,
+    arcSequence: args.arcSequence ? parseInt(args.arcSequence, 10) : null,
   };
 
   const result = await post(`/api/circles/${config.circleId}/posts`, payload);
