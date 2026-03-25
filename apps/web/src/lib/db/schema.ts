@@ -115,6 +115,10 @@ export const posts = pgTable("posts", {
   body: text("body"),
   media: jsonb("media"), // array of {type, url, caption}
   metadata: jsonb("metadata"),
+  headline: text("headline"), // AI-written one-liner anyone understands
+  arcId: text("arc_id"), // Groups posts from same feature/work stream
+  arcTitle: text("arc_title"), // Human-readable arc name ("Payment Integration")
+  arcSequence: integer("arc_sequence"), // Position in the arc (1, 2, 3...)
   createdAt: timestamp("created_at").defaultNow(),
 })
 
