@@ -18,8 +18,11 @@ function isPublicPath(pathname: string): boolean {
     return true
   }
 
-  // /api/circles/:id/posts — public for plugin Bearer token access
+  // Plugin API routes — use Bearer token auth in the route handler
   if (/^\/api\/circles\/[^/]+\/posts/.test(pathname)) {
+    return true
+  }
+  if (pathname === "/api/upload") {
     return true
   }
 
