@@ -1,7 +1,7 @@
 ---
 name: share
 description: Share what you're building with your vibecircle
-allowed-tools: Bash, Read
+allowed-tools: Bash, Read, Write
 user-invocable: true
 ---
 
@@ -13,41 +13,55 @@ When the user invokes `/share`, follow these steps:
 
 Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/lib/config.js check`
 
-- If output starts with "not-configured", tell the user:
-  "Vibecircle isn't configured yet. Set it up with:
-  `node ${CLAUDE_PLUGIN_ROOT}/scripts/lib/config.js set apiUrl <your-vibecircle-url>`
-  `node ${CLAUDE_PLUGIN_ROOT}/scripts/lib/config.js set authToken <your-token>`
-  `node ${CLAUDE_PLUGIN_ROOT}/scripts/lib/config.js set circleId <your-circle-id>`"
-  Then stop.
+If output starts with "not-configured", tell the user how to set up and stop.
 
-## 2. Try to capture a screenshot
+## 2. Read session context
+
+Read `~/.vibecircle/session.json` if it exists. This gives you context about the current project, active arc, and what's been shared already.
+
+## 3. Capture a screenshot
 
 Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/capture-screenshot.js`
 
-Save the output (a file path or empty string) for later. Don't worry if it's empty — screenshots are optional.
+Save the output path for later. Don't worry if it's empty.
 
-## 3. Ask the user what to share
+## 4. Generate the post draft
 
-Ask: "What are you sharing? (type: **shipped** or **wip**) And add a note about what you're building:"
+Based on the conversation context, recent git activity (`git diff --stat HEAD~3`, `git log --oneline -5`), and session context, write:
 
-Wait for the user to respond with:
-- A type (shipped or wip, default to wip if not specified)
-- A message/note about what they built
+- **headline**: One line, plain English, no jargon. Anyone should understand it.
+- **body**: 2-3 sentences describing what was built and why it matters. Write for a non-technical audience.
+- **type**: Ask the user — "shipped" or "wip" (default wip)
 
-## 4. Post to the circle
+If there's an active arc in session.json that matches the current work, use it. Otherwise, create a new arc with a descriptive title.
 
-Build the command based on the user's response:
+## 5. Show preview
+
+Show the user:
 
 ```
-node ${CLAUDE_PLUGIN_ROOT}/scripts/post-to-circle.js --type <type> --body "<user's message>"
+Ready to share:
+
+  **[headline]**
+  [body]
+
+  Type: [shipped/wip] · [📸 Screenshot if captured] · [Arc: "title" if applicable]
+
+Look good? You can edit the headline or description, change the type, or just say "send it".
 ```
 
-If a screenshot was captured (non-empty path from step 2), add: `--screenshot <path>`
+## 6. Post to the circle
 
-Run the command.
+After the user approves (or edits), run:
 
-## 5. Confirm
+```
+node ${CLAUDE_PLUGIN_ROOT}/scripts/post-to-circle.js --type <type> --body "<body>" --headline "<headline>" --arc-id "<arcId>" --arc-title "<arcTitle>" --arc-sequence <arcSequence>
+```
 
-If the command output includes a checkmark, tell the user: "Shared to your circle!"
+Add `--screenshot <path>` if a screenshot was captured.
 
-If it failed, show the error and suggest checking their config with `node ${CLAUDE_PLUGIN_ROOT}/scripts/lib/config.js check`.
+## 7. Confirm
+
+If successful, tell the user: "Shared to your circle!"
+
+Update `~/.vibecircle/session.json` milestones with the headline.
