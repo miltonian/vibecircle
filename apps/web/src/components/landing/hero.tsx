@@ -5,11 +5,11 @@ import { useEffect, useState } from "react"
 
 // Simulated friend activity for the floating cards
 const FRIENDS = [
-  { name: "Marcus", emoji: "🔥", status: "building", project: "Recipe AI", desc: "Snap ingredients, get recipes", type: "shipped", tech: "Next.js", timeAgo: "12m" },
-  { name: "Priya", emoji: "🌊", status: "building", project: "Shader Lab", desc: "WebGL transitions that slap", type: "wip", tech: "Three.js", timeAgo: "38m" },
-  { name: "Alex", emoji: "⚡", status: "online", project: "Drawspace", desc: "Multiplayer drawing — 2 friends in", type: "live", tech: "Canvas API", timeAgo: "1h" },
-  { name: "Jordan", emoji: "💎", status: "online", project: "CLI Dashboard", desc: "All Vercel projects in one view", type: "wip", tech: "Ink", timeAgo: "3h" },
-  { name: "Sam", emoji: "🌈", status: "away", project: "Mood Radio", desc: "AI picks music from your vibe", type: "shipped", tech: "Spotify API", timeAgo: "5h" },
+  { name: "Marcus", emoji: "🔥", status: "building", project: "Recipe AI", desc: "Recipe search with photo input", type: "shipped", tech: "Next.js", timeAgo: "12m" },
+  { name: "Priya", emoji: "🌊", status: "building", project: "Shader Lab", desc: "GPU-accelerated page transitions", type: "wip", tech: "Three.js", timeAgo: "38m" },
+  { name: "Alex", emoji: "⚡", status: "online", project: "Drawspace", desc: "Collaborative whiteboard — 2 teammates online", type: "live", tech: "Canvas API", timeAgo: "1h" },
+  { name: "Jordan", emoji: "💎", status: "online", project: "CLI Dashboard", desc: "Unified deployment dashboard", type: "wip", tech: "Ink", timeAgo: "3h" },
+  { name: "Sam", emoji: "🌈", status: "away", project: "Mood Radio", desc: "Mood-based music recommendations", type: "shipped", tech: "Spotify API", timeAgo: "5h" },
 ]
 
 const REACTIONS = ["🔥", "😍", "🚀", "💎", "🤯", "⚡"]
@@ -267,7 +267,7 @@ export function LandingHero() {
               }}
             />
             <span className="text-[13px] font-medium tracking-wide" style={{ color: "#7a6f60" }}>
-              Your friends are building right now
+              Your team is building right now
             </span>
           </div>
 
@@ -285,7 +285,7 @@ export function LandingHero() {
           >
             See what your
             <br />
-            friends are{" "}
+            team is{" "}
             <span
               style={{
                 background: "linear-gradient(135deg, #c4956a 0%, #8b6f4e 100%)",
@@ -308,7 +308,7 @@ export function LandingHero() {
               fontWeight: 300,
             }}
           >
-            A social feed for your vibe coding crew. Share what you&apos;re building, play with each other&apos;s apps, and feel the energy of friends creating together.
+            A live feed of what your team is shipping. The Claude Code plugin auto-captures what everyone builds — no standups, no status updates, no asking around.
           </p>
 
           {/* CTA */}
@@ -336,10 +336,10 @@ export function LandingHero() {
             className={`flex flex-wrap gap-2.5 mt-12 transition-all duration-700 delay-[400ms] ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}`}
           >
             {[
-              { icon: "📸", text: "Auto-capture screenshots" },
-              { icon: "🎮", text: "Play with live apps" },
-              { icon: "✨", text: "AI explains how it's built" },
-              { icon: "👥", text: "See who's coding" },
+              { icon: "🔌", text: "Claude Code plugin captures everything" },
+              { icon: "📖", text: "AI writes what you built in plain English" },
+              { icon: "🧵", text: "Follow features from start to ship" },
+              { icon: "👥", text: "See who's building right now" },
             ].map((f) => (
               <div
                 key={f.text}
@@ -373,7 +373,7 @@ export function LandingHero() {
                 <span style={{ opacity: 0.5 }}>$</span> claude /share
               </div>
               <span className="text-[11px]" style={{ color: "#4a4238" }}>
-                Share from Claude Code with one command
+                Install the plugin. Everything else is automatic.
               </span>
             </div>
           </div>
