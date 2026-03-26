@@ -76,7 +76,7 @@ export function PostCard({ post, index, userId }: PostCardProps) {
         ) : null}
 
         {/* Arc indicator */}
-        {post.arcId && post.arcTitle && post.arcSequence != null && (
+        {post.arcTitle && (
           <ArcIndicator arcTitle={post.arcTitle} arcSequence={post.arcSequence} />
         )}
 
@@ -119,7 +119,7 @@ export function PostCard({ post, index, userId }: PostCardProps) {
           <PostBody headline={post.headline} body={post.body} />
         </div>
 
-        {post.arcId && post.arcTitle && post.arcSequence != null && (
+        {post.arcTitle && (
           <div className="px-[18px]">
             <ArcIndicator arcTitle={post.arcTitle} arcSequence={post.arcSequence} />
           </div>
@@ -157,7 +157,7 @@ export function PostCard({ post, index, userId }: PostCardProps) {
       {video && <VideoPreview video={video} />}
       {post.type === "live" && post.metadata?.deploy_url && <LiveEmbed url={post.metadata.deploy_url} />}
 
-      {post.arcId && post.arcTitle && post.arcSequence != null && (
+      {post.arcTitle && (
         <ArcIndicator arcTitle={post.arcTitle} arcSequence={post.arcSequence} />
       )}
 
