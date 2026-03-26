@@ -52,6 +52,14 @@ For each qualifying circle, write a headline and body using the circle's `tone`:
 - `"non-technical"` — focus on what it does for users. For PMs/designers.
 - `"business-impact"` — focus on outcomes, metrics, who benefits. For leadership.
 
+**Write the body in markdown.** The feed renders markdown, so use it:
+- Use **bold** for emphasis on key points
+- Use bullet lists when describing multiple changes or features
+- Use `code` for technical terms, commands, or file names
+- Use > blockquotes for notable outcomes or metrics
+- Keep paragraphs short — 2-3 sentences max per paragraph
+- Don't overdo it — markdown should make it easier to scan, not harder
+
 Also determine type: "shipped" if deployed, "wip" otherwise.
 
 Read session context for arc info. Use the same arc across all circles.
