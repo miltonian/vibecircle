@@ -1,6 +1,6 @@
 ---
 name: circle
-description: Manage your vibecircle circles — see who's online, add/remove circles, configure
+description: Manage your vibecircle circles — setup, status, add more
 allowed-tools: Bash, Read, Write
 user-invocable: true
 ---
@@ -9,90 +9,94 @@ user-invocable: true
 
 ## Determine the subcommand
 
-Check the argument the user provided:
-- `/circle` (no args) or `/circle status` → Section 1: Show circle status
-- `/circle setup` → Section 2: First-time setup
-- `/circle add` → Section 3: Add another circle
-- `/circle list` → Section 4: List all circles
-- `/circle remove <name>` → Section 5: Remove a circle
-- `/circle invite` → Section 6: Invite info
+- `/circle` or `/circle status` → Section 1
+- `/circle setup` → Section 2
+- `/circle add` → Section 3
+- `/circle list` → Section 4
+- `/circle remove <name>` → Section 5
+- `/circle invite` → Section 6
+- `/circle config <name>` → Section 7
 
-## 1. Show circle status (default)
+## 1. Status (default)
 
 Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/lib/config.js check`
 
-If not configured, tell user to run `/circle setup`.
+If not configured, say "Not set up yet. Run `/circle setup` — takes 10 seconds."
 
-If configured, show circles and try to fetch presence for the first circle:
-
-Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/lib/config.js circles`
-
-Show the output formatted nicely.
+If configured, run `node ${CLAUDE_PLUGIN_ROOT}/scripts/lib/config.js circles` and show the output nicely.
 
 ## 2. First-time setup
 
 Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/lib/config.js check`
 
-If already configured with circles, say "You already have circles configured. Use `/circle add` to connect another."
+If already configured, say "Already connected. Use `/circle add` to connect another circle."
 
 If not configured:
 
-a. Run device auth: `node ${CLAUDE_PLUGIN_ROOT}/scripts/device-auth.js`
-b. After auth completes, ask: "What should we call this circle?" (user types a name)
-c. Ask: "What tone for posts to this circle? (casual / technical / non-technical / business-impact)"
-d. Ask: "What repos should post here? (type 'all' for everything, or list repos like owner/repo separated by commas)"
-e. Ask: "What filter? (everything / features-only / milestones-only)"
-f. Read the config, find the circle that was just added (the one with empty name), update it with the answers:
+a. Say: "Opening your browser to authorize..."
+b. Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/device-auth.js`
+c. That's it. The script handles everything — auth, circle name detection, config with defaults (casual tone, all repos, everything filter).
+d. After it completes, say: "You're all set! The plugin will suggest sharing as you build. Use `/share` anytime to share manually."
 
-```bash
-node -e "
-const { getConfig, saveConfig } = require('${CLAUDE_PLUGIN_ROOT}/scripts/lib/config');
-const config = getConfig();
-const circle = config.circles.find(c => !c.name || c.name === '');
-if (circle) {
-  circle.name = '<name from user>';
-  circle.tone = '<tone from user>';
-  circle.filter = '<filter from user>';
-  circle.repos = '<repos from user — either \"*\" or array>';
-  saveConfig(config);
-  console.log('Circle configured!');
-}
-"
-```
+**Do NOT ask any questions.** No name, no tone, no repos, no filter. Defaults are fine. Users can customize later with `/circle config`.
 
-g. Confirm: "You're connected to <name>!"
+After setup, suggest: "Tip: You can add more circles for different audiences — like a team circle with technical tone, or an execs circle that only shows milestones. Try `/circle add` when you're ready."
 
 ## 3. Add another circle
 
-a. Run device auth: `node ${CLAUDE_PLUGIN_ROOT}/scripts/device-auth.js`
-b. Same questions as setup (name, tone, repos, filter)
-c. Same config update
-d. Confirm: "Added <name> to your circles!"
+a. Say: "Opening your browser to authorize a new circle..."
+b. Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/device-auth.js`
+c. After it completes, say: "Added! Want to customize this circle's settings? You can set the tone (casual/technical/non-technical/business-impact), filter (everything/features-only/milestones-only), and which repos post here. Run `/circle config <name>` to adjust."
 
-## 4. List all circles
+**Do NOT ask questions during add either.** Defaults are applied. Users customize after if they want.
+
+## 4. List circles
 
 Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/lib/config.js circles`
 
 Format nicely:
 ```
 Your circles:
-  1. Friends (casual) — all repos, everything
+  1. Mindshare (casual) — all repos, everything
   2. Eng Team (technical) — vibecircle, singlefile — everything
-  3. Product (non-technical) — singlefile — features only
 ```
 
 ## 5. Remove a circle
 
-The user provides a name: `/circle remove Friends`
-
 ```bash
 node -e "
 const { removeCircle } = require('${CLAUDE_PLUGIN_ROOT}/scripts/lib/config');
-removeCircle('<name>');
-console.log('Removed <name>');
+removeCircle('<name from args>');
+console.log('Removed.');
 "
 ```
 
 ## 6. Invite info
 
-"To invite someone to a circle, use the Invite button in the top bar of the vibecircle web app, or share your circle's invite link from vibecircle.dev."
+"Use the **Invite** button in the top bar on vibecircle.dev, or share your circle's invite link."
+
+## 7. Configure a circle
+
+The user ran `/circle config <name>`. Ask what they want to change:
+
+- **Tone**: casual / technical / non-technical / business-impact
+- **Filter**: everything / features-only / milestones-only
+- **Repos**: all, or specific repos (owner/repo, comma-separated)
+
+Only ask about the thing they want to change. Example: "What tone? (casual / technical / non-technical / business-impact)"
+
+Then update:
+```bash
+node -e "
+const { getConfig, saveConfig } = require('${CLAUDE_PLUGIN_ROOT}/scripts/lib/config');
+const config = getConfig();
+const circle = config.circles.find(c => c.name.toLowerCase() === '<name>'.toLowerCase());
+if (circle) {
+  circle.<field> = '<value>';
+  saveConfig(config);
+  console.log('Updated!');
+} else {
+  console.log('Circle not found. Run /circle list to see your circles.');
+}
+"
+```

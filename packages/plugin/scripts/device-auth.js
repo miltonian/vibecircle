@@ -93,13 +93,36 @@ async function main() {
         config.authToken = data.token;
         saveConfig(config);
 
-        // Add the circle (name will be set by /circle setup prompt)
-        addCircle({ id: data.circleId, name: "", tone: "casual", filter: "everything", repos: "*" });
+        // Fetch circle name from API
+        let circleName = "";
+        try {
+          const circleRes = await fetch(`${API_URL}/api/circles/invite-lookup?code=_&circleId=${data.circleId}`);
+          if (!circleRes.ok) {
+            // Try fetching via the circles list
+            const listRes = await fetch(`${API_URL}/api/circles`, {
+              headers: { Authorization: `Bearer ${data.token}` },
+            });
+            if (listRes.ok) {
+              const circles = await listRes.json();
+              const match = circles.find((c) => c.id === data.circleId);
+              if (match) circleName = match.name;
+            }
+          }
+        } catch {}
+
+        // Add circle with auto-detected name and sensible defaults
+        addCircle({
+          id: data.circleId,
+          name: circleName || "My Circle",
+          tone: "casual",
+          filter: "everything",
+          repos: "*",
+        });
 
         const configPath = getConfigPath();
-        process.stdout.write(`\n✓ vibecircle configured! Config saved to ${configPath}\n`);
+        process.stdout.write(`\n✓ Connected to ${circleName || "your circle"}! Config saved to ${configPath}\n`);
+        process.stdout.write(`circleName:${circleName}\n`);
         process.stdout.write(`circleId:${data.circleId}\n`);
-        process.stdout.write("Use /share to post to your circle.\n");
         process.exit(0);
       }
 
