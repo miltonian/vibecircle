@@ -348,7 +348,7 @@ export async function getPost(postId: string) {
   }
 }
 
-/** Get active arcs for a circle — grouped by arcId with post count and latest timestamp */
+/** Get active arcs for a circle — grouped by arcTitle with post count and latest timestamp */
 export async function getArcs(circleId: string) {
   const rows = await db
     .select({
@@ -360,18 +360,20 @@ export async function getArcs(circleId: string) {
     })
     .from(posts)
     .innerJoin(users, eq(posts.authorId, users.id))
-    .where(and(eq(posts.circleId, circleId), sql`${posts.arcId} IS NOT NULL`))
+    .where(and(eq(posts.circleId, circleId), sql`${posts.arcTitle} IS NOT NULL`))
     .orderBy(desc(posts.createdAt))
 
-  const arcMap = new Map<string, { arcId: string; arcTitle: string | null; authorId: string; authorName: string | null; postCount: number; latestAt: Date | null }>()
+  // Group by arcTitle (some posts have arcTitle but no arcId)
+  const arcMap = new Map<string, { arcId: string | null; arcTitle: string; authorId: string; authorName: string | null; postCount: number; latestAt: Date | null }>()
 
   for (const row of rows) {
-    if (!row.arcId) continue
-    const existing = arcMap.get(row.arcId)
+    if (!row.arcTitle) continue
+    const key = row.arcId || row.arcTitle // prefer arcId as key, fall back to title
+    const existing = arcMap.get(key)
     if (existing) {
       existing.postCount++
     } else {
-      arcMap.set(row.arcId, {
+      arcMap.set(key, {
         arcId: row.arcId,
         arcTitle: row.arcTitle,
         authorId: row.authorId,

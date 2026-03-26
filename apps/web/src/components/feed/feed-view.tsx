@@ -17,7 +17,7 @@ export function FeedView({ circleId, userId, hasToken, selectedArc }: FeedViewPr
 
   const posts = data?.posts ?? []
   const filteredPosts = selectedArc
-    ? posts.filter((p) => p.arcId === selectedArc)
+    ? posts.filter((p) => p.arcId === selectedArc || p.arcTitle === selectedArc)
     : posts
 
   return (

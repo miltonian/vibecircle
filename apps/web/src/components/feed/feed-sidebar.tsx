@@ -76,18 +76,21 @@ export function FeedSidebar({ circleId, selectedArc, onArcSelect }: FeedSidebarP
         >
           All posts
         </button>
-        {(arcs ?? []).map((arc) => (
+        {(arcs ?? []).map((arc) => {
+          const arcKey = arc.arcId || arc.arcTitle || "unknown"
+          return (
           <button
-            key={arc.arcId}
-            onClick={() => onArcSelect(arc.arcId)}
+            key={arcKey}
+            onClick={() => onArcSelect(arcKey)}
             className={`mb-1 flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-xs transition-colors ${
-              selectedArc === arc.arcId ? "bg-accent-green/[0.06] text-text-primary" : "text-accent-green hover:bg-bg-elevated"
+              selectedArc === arcKey ? "bg-accent-green/[0.06] text-text-primary" : "text-accent-green hover:bg-bg-elevated"
             }`}
           >
             <span className="font-medium">{arc.arcTitle ?? "Untitled"}</span>
             <span className="text-text-dim">{arc.postCount}</span>
           </button>
-        ))}
+          )
+        })}
       </div>
 
       <hr className="mb-4 border-border-dim" />
