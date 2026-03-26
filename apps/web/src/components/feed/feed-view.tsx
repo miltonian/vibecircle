@@ -9,12 +9,16 @@ interface FeedViewProps {
   circleId: string
   userId?: string
   hasToken?: boolean
+  selectedArc?: string | null
 }
 
-export function FeedView({ circleId, userId, hasToken }: FeedViewProps) {
+export function FeedView({ circleId, userId, hasToken, selectedArc }: FeedViewProps) {
   const { data, error, isLoading, mutate } = useFeed(circleId)
 
   const posts = data?.posts ?? []
+  const filteredPosts = selectedArc
+    ? posts.filter((p) => p.arcId === selectedArc)
+    : posts
 
   return (
     <>
@@ -38,11 +42,11 @@ export function FeedView({ circleId, userId, hasToken }: FeedViewProps) {
             </button>
           </div>
         </div>
-      ) : posts.length === 0 ? (
-        <EmptyFeed hasToken={hasToken} />
+      ) : filteredPosts.length === 0 ? (
+        <EmptyFeed hasToken={hasToken} selectedArc={selectedArc} />
       ) : (
         <div className="space-y-4">
-          {posts.map((post, i) => (
+          {filteredPosts.map((post, i) => (
             <PostCard key={post.id} post={post} index={i} userId={userId} />
           ))}
         </div>
@@ -54,7 +58,7 @@ export function FeedView({ circleId, userId, hasToken }: FeedViewProps) {
   )
 }
 
-function EmptyFeed({ hasToken }: { hasToken?: boolean }) {
+function EmptyFeed({ hasToken, selectedArc }: { hasToken?: boolean; selectedArc?: string | null }) {
   return (
     <div className="flex min-h-[30vh] items-center justify-center">
       <div className="text-center">
@@ -74,10 +78,12 @@ function EmptyFeed({ hasToken }: { hasToken?: boolean }) {
           </svg>
         </div>
         <h2 className="font-display text-lg font-semibold text-text-primary">
-          No posts yet
+          {selectedArc ? "No posts in this arc" : "No posts yet"}
         </h2>
         <p className="mt-1 text-sm text-text-muted">
-          {hasToken ? (
+          {selectedArc ? (
+            "Try selecting a different arc or view all posts."
+          ) : hasToken ? (
             <>
               Start building and share with{" "}
               <code className="rounded bg-bg-elevated px-1.5 py-0.5 font-code text-xs text-accent-green">

@@ -2,8 +2,7 @@ import { auth } from "@/lib/auth"
 import { getCircleById } from "@/lib/db/queries"
 import { redirect } from "next/navigation"
 import Link from "next/link"
-import { FeedView } from "@/components/feed/feed-view"
-import { MembersPanel } from "@/components/feed/members-panel"
+import { FeedWithSidebar } from "@/components/feed/feed-with-sidebar"
 import { db } from "@/lib/db"
 import { apiTokens, circleMembers } from "@/lib/db/schema"
 import { eq, and } from "drizzle-orm"
@@ -73,9 +72,6 @@ export default async function CircleFeedPage({
   }
 
   return (
-    <div>
-      <MembersPanel circleId={circleId} />
-      <FeedView circleId={circleId} userId={session.user.id} hasToken={hasToken} />
-    </div>
+    <FeedWithSidebar circleId={circleId} userId={session.user.id} hasToken={hasToken} />
   )
 }
