@@ -5,5 +5,9 @@
   "author": {
     "name": "vibecircle",
     "url": "https://github.com/miltonian/vibecircle"
-  }
+  },
+  "homepage": "https://vibecircle.dev",
+  "repository": "https://github.com/miltonian/vibecircle",
+  "license": "MIT",
+  "keywords": ["social", "vibe-coding", "feed", "sharing", "presence", "teams"]
 }
