@@ -75,6 +75,11 @@ export function PostCard({ post, index, userId }: PostCardProps) {
           <ImageCarousel images={images} />
         ) : null}
 
+        {/* Arc indicator */}
+        {post.arcId && post.arcTitle && post.arcSequence != null && (
+          <ArcIndicator arcTitle={post.arcTitle} arcSequence={post.arcSequence} />
+        )}
+
         {/* Reactions */}
         <div className="relative mt-2 overflow-visible border-t border-border-dim pt-2">
           <ReactionBar postId={post.id} initialReactions={initialReactions} userId={userId} />
