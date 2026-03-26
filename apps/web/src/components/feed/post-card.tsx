@@ -41,7 +41,7 @@ export function PostCard({ post, index, userId }: PostCardProps) {
   if (variant === "compact") {
     return (
       <article
-        className="rounded-xl border border-border-dim bg-bg-card px-4 py-3.5 transition-all duration-200 hover:border-border-subtle"
+        className="overflow-visible rounded-xl border border-border-dim bg-bg-card px-4 py-3.5 transition-all duration-200 hover:border-border-subtle"
         style={{ animation: `post-fade-in 0.4s ease-out ${delay}ms both` }}
       >
         <div className="flex items-center gap-2.5 mb-1.5">
@@ -63,7 +63,22 @@ export function PostCard({ post, index, userId }: PostCardProps) {
           <span className="text-[12px] text-text-muted">{post.type === "wip" ? "is building" : "posted"}</span>
           <span className="ml-auto text-[10px] text-text-dim">{timeAgo(post.createdAt)}</span>
         </div>
-        <div className="text-[13px] leading-relaxed text-text-secondary">{post.body}</div>
+
+        <PostBody headline={post.headline} body={post.body} />
+
+        {/* Media — compact cards still show images/video/embeds */}
+        {post.type === "live" && post.metadata?.deploy_url ? (
+          <LiveEmbed url={post.metadata.deploy_url} />
+        ) : video ? (
+          <VideoPreview video={video} />
+        ) : images.length > 0 ? (
+          <ImageCarousel images={images} />
+        ) : null}
+
+        {/* Reactions */}
+        <div className="relative mt-2 overflow-visible border-t border-border-dim pt-2">
+          <ReactionBar postId={post.id} initialReactions={initialReactions} userId={userId} />
+        </div>
       </article>
     )
   }
