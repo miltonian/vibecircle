@@ -583,6 +583,7 @@ export async function getRecentActivity(circleId: string) {
     .select({
       type: posts.type,
       body: posts.body,
+      headline: posts.headline,
       createdAt: posts.createdAt,
       authorName: users.name,
     })
@@ -592,16 +593,24 @@ export async function getRecentActivity(circleId: string) {
     .orderBy(desc(posts.createdAt))
     .limit(10)
 
-  const typeToAction: Record<string, string> = {
-    shipped: "shipped something",
-    wip: "started new project",
-    video: "shared a video",
-    live: "went live",
-    ambient: "shared an update",
+  const typeToVerb: Record<string, string> = {
+    shipped: "shipped",
+    wip: "is building",
+    video: "shared",
+    live: "launched",
+    ambient: "posted",
   }
 
-  return rows.map((row) => ({
-    userName: row.authorName ?? "Someone",
-    action: typeToAction[row.type] ?? "posted",
-  }))
+  return rows.map((row) => {
+    const verb = typeToVerb[row.type] ?? "posted"
+    // Use headline, or first ~60 chars of body, or generic fallback
+    const what = row.headline
+      || (row.body ? row.body.substring(0, 60).replace(/\n/g, " ") : null)
+      || ""
+
+    return {
+      userName: row.authorName ?? "Someone",
+      action: what ? `${verb} "${what}"` : `${verb} something`,
+    }
+  })
 }
