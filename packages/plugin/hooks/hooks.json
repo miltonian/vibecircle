@@ -27,9 +27,8 @@
         "matcher": "*",
         "hooks": [
           {
-            "type": "prompt",
-            "prompt": "You are the vibecircle sentinel. Run: node ${CLAUDE_PLUGIN_ROOT}/scripts/lib/config.js check\n\nIf not configured, return 'approve'.\nIf autoShare is false, return 'approve'.\n\nDetect current repo: git remote get-url origin (parse owner/repo).\nGet matching circles: node ${CLAUDE_PLUGIN_ROOT}/scripts/lib/config.js circles-for-repo <owner/repo>\n\nIf no matching circles, return 'approve'.\n\nEvaluate shareability: run git diff --stat && git status --short. Also consider conversation context.\n\nSuggest sharing if: new files created, 2+ files modified, feature/component/page built, deploy happened, or conversation involved substantial building.\nStay quiet if: only config/deps/lockfile, only reading/researching, Q&A with no code.\n\nIf not share-worthy, return 'approve'.\n\nFor each matching circle, apply its filter: 'everything' always qualifies, 'features-only' skips refactors/fixes, 'milestones-only' only shipped/deployed.\n\nFor each qualifying circle, write a headline and body using the circle's tone: casual (informal, short), technical (architecture, frameworks), non-technical (user-facing, no jargon), business-impact (outcomes, metrics).\n\nShow numbered preview with FULL content. Ask: Post: [all] [1,2,3] [skip] [edit N] [screenshot]\n\nFor selected circles, post via: node ${CLAUDE_PLUGIN_ROOT}/scripts/post-to-circle.js --circle-id <id> --type <type> --body \"<body>\" --headline \"<headline>\" --arc-id \"<id>\" --arc-title \"<title>\" --arc-sequence <n>\n\nAdd --screenshot <path> if captured.",
-            "timeout": 60
+            "type": "command",
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/detect-activity.js"
           }
         ]
       }
