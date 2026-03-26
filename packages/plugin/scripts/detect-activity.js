@@ -96,9 +96,37 @@ function main() {
       process.stdout.write(
         `You've made changes to ${changedFiles} files. Share with your circles (${circleNames})? Use /share\n`
       );
+      process.exit(0);
     }
   } catch {
     // git not available or not in a repo — silently exit
+  }
+
+  // Check for recently created PRs (last 10 minutes)
+  try {
+    const prJson = execFileSync(
+      "gh",
+      ["pr", "list", "--author", "@me", "--state", "open", "--json", "createdAt,title,number", "--limit", "1"],
+      { encoding: "utf-8", timeout: 10000, stdio: ["pipe", "pipe", "pipe"] }
+    ).trim();
+
+    if (prJson) {
+      const prs = JSON.parse(prJson);
+      if (prs.length > 0) {
+        const pr = prs[0];
+        const createdAt = new Date(pr.createdAt);
+        const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+
+        if (createdAt > tenMinutesAgo) {
+          const circleNames = matchingCircles.map((c) => c.name).join(", ");
+          process.stdout.write(
+            `You just opened PR #${pr.number}: "${pr.title}". Share with your circles (${circleNames})? Use /share\n`
+          );
+        }
+      }
+    }
+  } catch {
+    // gh CLI not available or not authenticated — skip silently
   }
 
   process.exit(0);
