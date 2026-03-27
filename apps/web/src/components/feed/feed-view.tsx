@@ -47,7 +47,7 @@ export function FeedView({ circleId, userId, hasToken, selectedArc }: FeedViewPr
       ) : (
         <div className="space-y-4">
           {filteredPosts.map((post, i) => (
-            <PostCard key={post.id} post={post} index={i} userId={userId} />
+            <PostCard key={post.id} post={post} index={i} userId={userId} circleId={circleId} />
           ))}
         </div>
       )}

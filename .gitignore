@@ -37,3 +37,6 @@ yarn-error.log*
 
 # superpowers
 .superpowers/
+
+# worktrees
+.worktrees/
