@@ -32,17 +32,32 @@ function setLastSuggestTime() {
   } catch {}
 }
 
-function suggest(message) {
+function suggest(trigger, circleNames, config) {
   // Don't suggest more than once every 5 minutes
   const last = getLastSuggestTime();
   if (Date.now() - last < 5 * 60 * 1000) {
     process.exit(0);
   }
   setLastSuggestTime();
-  // Output goes into Claude's context — Claude will relay this to the user
+
+  // Read circles config for tone info
+  const circles = config.circles || [];
+  const circleInfo = circles.map(c => `${c.name} (tone: ${c.tone}, filter: ${c.filter})`).join(", ");
+
   const output = JSON.stringify({
     decision: "approve",
-    systemMessage: `[vibecircle] ${message}. Briefly mention this to the user — don't be pushy, just let them know they can use /share if they want to share what they've been building.`
+    systemMessage: `[vibecircle auto-share] ${trigger}
+
+This looks like a good moment to share with the user's circles: ${circleInfo}.
+
+Do this now:
+1. Based on what was just built in this conversation, draft a post for each matching circle. Write a headline (one line, plain English, no jargon) and a body (2-3 sentences, markdown OK). Adapt the tone per circle.
+2. Try to capture a screenshot if UI work was done — check conversation context for a dev server URL, or use the production URL from ~/.vibecircle/config.json apiUrl field. Use Playwright MCP tools if available.
+3. Show the user a preview of all drafts numbered, with full content. Ask: Post: [all] · [1,2] · [skip] · [edit N]
+4. If they approve, post each via: node ${process.env.CLAUDE_PLUGIN_ROOT || "PLUGIN_ROOT"}/scripts/post-to-circle.js --circle-id <id> --type <shipped|wip> --headline "<headline>" --body "<body>" --arc-id "<arcId>" --arc-title "<arcTitle>" --arc-sequence <n>
+5. Add --screenshot <path> if one was captured.
+
+Be casual about it — don't be robotic. Something like "Looks like you shipped something cool — want to share it?" then show the preview.`
   });
   process.stdout.write(output);
   process.exit(0);
@@ -99,7 +114,7 @@ function main() {
     });
 
     if (!isOnlyConfig) {
-      suggest(`You've made changes to ${changedFiles} files. Share with your circles (${circleNames})? Use /share`);
+      suggest(`User has ${changedFiles} uncommitted file changes in this session.`, circleNames, config);
     }
   }
 
@@ -110,7 +125,7 @@ function main() {
     if (commits.length >= 2) {
       // Get the latest commit message for context
       const latestMsg = commits[0].replace(/^[a-f0-9]+ /, "");
-      suggest(`You've committed ${commits.length} times recently (latest: "${latestMsg}"). Share with your circles (${circleNames})? Use /share`);
+      suggest(`User made ${commits.length} commits in the last 15 minutes (latest: "${latestMsg}").`, circleNames, config);
     }
   }
 
@@ -130,7 +145,7 @@ function main() {
         const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
 
         if (createdAt > tenMinutesAgo) {
-          suggest(`You just opened PR #${pr.number}: "${pr.title}". Share with your circles (${circleNames})? Use /share`);
+          suggest(`User just opened PR #${pr.number}: "${pr.title}".`, circleNames, config);
         }
       }
     }
