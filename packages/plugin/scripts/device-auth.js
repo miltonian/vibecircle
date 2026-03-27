@@ -93,24 +93,24 @@ async function main() {
         config.authToken = data.token;
         saveConfig(config);
 
-        // Fetch circle name from API
-        let circleName = "";
+        // Fetch all user circles and sync them
+        let allCircles = [];
         try {
-          const circleRes = await fetch(`${API_URL}/api/circles/invite-lookup?code=_&circleId=${data.circleId}`);
-          if (!circleRes.ok) {
-            // Try fetching via the circles list
-            const listRes = await fetch(`${API_URL}/api/circles`, {
-              headers: { Authorization: `Bearer ${data.token}` },
-            });
-            if (listRes.ok) {
-              const circles = await listRes.json();
-              const match = circles.find((c) => c.id === data.circleId);
-              if (match) circleName = match.name;
-            }
+          const listRes = await fetch(`${API_URL}/api/circles`, {
+            headers: { Authorization: `Bearer ${data.token}` },
+          });
+          if (listRes.ok) {
+            allCircles = await listRes.json();
           }
-        } catch {}
+        } catch {
+          // Circle fetch failed — we'll still add the selected circle below
+        }
 
-        // Add circle with auto-detected name and sensible defaults
+        // Find the name of the explicitly-selected circle
+        const selectedCircle = allCircles.find((c) => c.id === data.circleId);
+        const circleName = selectedCircle?.name || "";
+
+        // Add the explicitly-selected circle first
         addCircle({
           id: data.circleId,
           name: circleName || "My Circle",
@@ -119,8 +119,31 @@ async function main() {
           repos: "*",
         });
 
+        // Sync remaining circles (only add new ones — don't overwrite customizations)
+        const allCircleNames = [circleName || "My Circle"];
+        const currentConfig = getConfig();
+        const existingIds = new Set(currentConfig.circles.map((c) => c.id));
+        for (const c of allCircles) {
+          if (c.id === data.circleId) continue; // Already added above
+          if (!existingIds.has(c.id)) {
+            addCircle({
+              id: c.id,
+              name: c.name,
+              tone: "casual",
+              filter: "everything",
+              repos: "*",
+            });
+          }
+          // Collect name for summary (whether new or existing)
+          allCircleNames.push(c.name);
+        }
+
         const configPath = getConfigPath();
-        process.stdout.write(`\n✓ Connected to ${circleName || "your circle"}! Config saved to ${configPath}\n`);
+        if (allCircleNames.length > 1) {
+          process.stdout.write(`\n✓ Connected to ${allCircleNames.length} circles: ${allCircleNames.join(", ")}! Config saved to ${configPath}\n`);
+        } else {
+          process.stdout.write(`\n✓ Connected to ${allCircleNames[0]}! Config saved to ${configPath}\n`);
+        }
         process.stdout.write(`circleName:${circleName}\n`);
         process.stdout.write(`circleId:${data.circleId}\n`);
         process.exit(0);

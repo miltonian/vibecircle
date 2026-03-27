@@ -24,15 +24,16 @@ async function main() {
   }
 
   const config = getConfig();
-  if (!config.circleId) {
-    // No circle configured — silently exit
+  const circles = config.circles || [];
+  if (circles.length === 0) {
     process.exit(0);
   }
 
-  await put("/api/presence", {
-    circleId: config.circleId,
-    status: status,
-  });
+  await Promise.allSettled(
+    circles.map((c) =>
+      put("/api/presence", { circleId: c.id, status })
+    )
+  );
 
   process.exit(0);
 }
