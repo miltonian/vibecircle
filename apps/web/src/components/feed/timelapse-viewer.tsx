@@ -229,13 +229,14 @@ export function TimelapseViewer({
     <div
       className="fixed inset-0 z-50 flex flex-col bg-black/95 backdrop-blur-sm"
       style={{ animation: "fade-in 0.15s ease-out" }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       {/* Top bar */}
       <div className="flex items-center justify-between px-4 py-3 sm:px-6">
         <div className="flex items-center gap-3">
           <button
-            onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full text-white/60 transition-colors hover:bg-white/10 hover:text-white"
+            onClick={(e) => { e.stopPropagation(); onClose(); }}
+            className="relative z-[60] flex h-8 w-8 items-center justify-center rounded-full text-white/60 transition-colors hover:bg-white/10 hover:text-white"
             aria-label="Close timelapse"
           >
             <X className="h-5 w-5" />
