@@ -68,7 +68,7 @@ export function TopBar({ circleName, circleId, inviteCode, circles }: TopBarProp
   return (
     <>
       <header className="glass sticky top-0 z-50 border-b border-[rgba(255,255,255,0.04)]">
-        <div className="mx-auto flex h-14 items-center justify-between px-4" style={{ maxWidth: 620 }}>
+        <div className="mx-auto flex h-14 items-center justify-between px-4" style={{ maxWidth: 960 }}>
           {/* Left: Logo */}
           <Link href="/" className="flex items-center">
             <span className="font-heading text-xl font-extrabold tracking-tight">

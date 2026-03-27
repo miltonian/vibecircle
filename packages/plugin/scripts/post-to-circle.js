@@ -13,7 +13,7 @@ const { post, uploadFile } = require("./lib/api-client");
 
 /** Parse command-line arguments */
 function parseArgs(argv) {
-  const args = { type: "wip", body: "", screenshot: "", headline: "", arcId: "", arcTitle: "", arcSequence: "" };
+  const args = { type: "wip", body: "", screenshot: "", headline: "", arcId: "", arcTitle: "", arcSequence: "", circleId: "" };
   for (let i = 2; i < argv.length; i++) {
     if (argv[i] === "--type" && argv[i + 1]) {
       args.type = argv[++i];
@@ -29,6 +29,8 @@ function parseArgs(argv) {
       args.arcTitle = argv[++i];
     } else if (argv[i] === "--arc-sequence" && argv[i + 1]) {
       args.arcSequence = argv[++i];
+    } else if (argv[i] === "--circle-id" && argv[i + 1]) {
+      args.circleId = argv[++i];
     }
   }
   return args;
@@ -74,12 +76,25 @@ async function main() {
   }
 
   const config = getConfig();
-  if (!config.circleId) {
-    process.stderr.write("[vibecircle] No circleId configured.\n");
+  const args = parseArgs(process.argv);
+
+  // Determine which circle to post to
+  let circleId = args.circleId;
+  if (!circleId) {
+    // Fall back to first circle in config (backwards compat)
+    const circles = config.circles || [];
+    if (circles.length > 0) {
+      circleId = circles[0].id;
+    } else if (config.circleId) {
+      circleId = config.circleId;  // Legacy format
+    }
+  }
+
+  if (!circleId) {
+    process.stderr.write("[vibecircle] No circleId configured or provided.\n");
     process.exit(0);
   }
 
-  const args = parseArgs(process.argv);
   const metadata = getGitMetadata();
 
   // Build media array
@@ -105,7 +120,7 @@ async function main() {
     arcSequence: args.arcSequence ? parseInt(args.arcSequence, 10) : null,
   };
 
-  const result = await post(`/api/circles/${config.circleId}/posts`, payload);
+  const result = await post(`/api/circles/${circleId}/posts`, payload);
 
   if (result) {
     process.stdout.write("\u2713 Posted to your circle!\n");

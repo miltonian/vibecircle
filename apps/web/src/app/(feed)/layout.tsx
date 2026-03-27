@@ -15,8 +15,8 @@ export default function FeedLayout({
       {/* Sticky top bar with presence */}
       <TopBarWrapper />
 
-      {/* Main content — 620px centered for feed readability */}
-      <main className="relative z-10 mx-auto px-4 py-8" style={{ maxWidth: 620 }}>
+      {/* Main content — 960px centered for feed readability */}
+      <main className="relative z-10 mx-auto px-4 py-8" style={{ maxWidth: 960 }}>
         {children}
       </main>
     </div>

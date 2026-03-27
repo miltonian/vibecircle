@@ -271,6 +271,30 @@ export async function getFeed(
     .where(sql`${comments.postId} IN ${postIds}`)
     .groupBy(comments.postId)
 
+  // Fetch arc post counts for posts that have arcIds
+  const arcIds = [...new Set(feedRows.map((r) => r.arcId).filter(Boolean))] as string[]
+  const arcCountMap = new Map<string, number>()
+
+  if (arcIds.length > 0) {
+    const arcCountRows = await db
+      .select({
+        arcId: posts.arcId,
+        count: count(),
+      })
+      .from(posts)
+      .where(
+        and(
+          eq(posts.circleId, circleId),
+          sql`${posts.arcId} IN ${arcIds}`
+        )
+      )
+      .groupBy(posts.arcId)
+
+    for (const row of arcCountRows) {
+      if (row.arcId) arcCountMap.set(row.arcId, Number(row.count))
+    }
+  }
+
   // Build lookup maps
   const reactionMap = new Map<string, Record<string, number>>()
   for (const r of reactionRows) {
@@ -296,6 +320,7 @@ export async function getFeed(
     arcId: row.arcId,
     arcTitle: row.arcTitle,
     arcSequence: row.arcSequence,
+    arcTotalPosts: row.arcId ? (arcCountMap.get(row.arcId) ?? 1) : null,
     createdAt: row.createdAt,
     author: {
       id: row.authorId,
@@ -348,7 +373,7 @@ export async function getPost(postId: string) {
   }
 }
 
-/** Get active arcs for a circle — grouped by arcId with post count and latest timestamp */
+/** Get active arcs for a circle — grouped by arcTitle with post count and latest timestamp */
 export async function getArcs(circleId: string) {
   const rows = await db
     .select({
@@ -360,18 +385,20 @@ export async function getArcs(circleId: string) {
     })
     .from(posts)
     .innerJoin(users, eq(posts.authorId, users.id))
-    .where(and(eq(posts.circleId, circleId), sql`${posts.arcId} IS NOT NULL`))
+    .where(and(eq(posts.circleId, circleId), sql`${posts.arcTitle} IS NOT NULL`))
     .orderBy(desc(posts.createdAt))
 
-  const arcMap = new Map<string, { arcId: string; arcTitle: string | null; authorId: string; authorName: string | null; postCount: number; latestAt: Date | null }>()
+  // Group by arcTitle (some posts have arcTitle but no arcId)
+  const arcMap = new Map<string, { arcId: string | null; arcTitle: string; authorId: string; authorName: string | null; postCount: number; latestAt: Date | null }>()
 
   for (const row of rows) {
-    if (!row.arcId) continue
-    const existing = arcMap.get(row.arcId)
+    if (!row.arcTitle) continue
+    const key = row.arcId || row.arcTitle // prefer arcId as key, fall back to title
+    const existing = arcMap.get(key)
     if (existing) {
       existing.postCount++
     } else {
-      arcMap.set(row.arcId, {
+      arcMap.set(key, {
         arcId: row.arcId,
         arcTitle: row.arcTitle,
         authorId: row.authorId,
@@ -383,6 +410,50 @@ export async function getArcs(circleId: string) {
   }
 
   return Array.from(arcMap.values())
+}
+
+/** Get all frames for a timelapse — posts in an arc ordered by sequence */
+export async function getTimelapseFrames(circleId: string, arcId: string) {
+  const rows = await db
+    .select({
+      postId: posts.id,
+      headline: posts.headline,
+      media: posts.media,
+      type: posts.type,
+      createdAt: posts.createdAt,
+      arcSequence: posts.arcSequence,
+      arcTitle: posts.arcTitle,
+      authorName: users.name,
+      authorAvatarUrl: users.avatarUrl,
+      authorImage: users.image,
+    })
+    .from(posts)
+    .innerJoin(users, eq(posts.authorId, users.id))
+    .where(
+      and(
+        eq(posts.circleId, circleId),
+        eq(posts.arcId, arcId)
+      )
+    )
+    .orderBy(posts.arcSequence)
+
+  if (rows.length === 0) return null
+
+  return {
+    arcTitle: rows[0].arcTitle ?? "Untitled Arc",
+    frames: rows.map((row) => ({
+      postId: row.postId,
+      headline: row.headline,
+      media: row.media,
+      type: row.type,
+      createdAt: row.createdAt,
+      arcSequence: row.arcSequence ?? 0,
+      author: {
+        name: row.authorName,
+        avatarUrl: row.authorAvatarUrl ?? row.authorImage,
+      },
+    })),
+  }
 }
 
 // ── Presence Queries ─────────────────────────────────────────────────────────
@@ -581,6 +652,7 @@ export async function getRecentActivity(circleId: string) {
     .select({
       type: posts.type,
       body: posts.body,
+      headline: posts.headline,
       createdAt: posts.createdAt,
       authorName: users.name,
     })
@@ -590,16 +662,24 @@ export async function getRecentActivity(circleId: string) {
     .orderBy(desc(posts.createdAt))
     .limit(10)
 
-  const typeToAction: Record<string, string> = {
-    shipped: "shipped something",
-    wip: "started new project",
-    video: "shared a video",
-    live: "went live",
-    ambient: "shared an update",
+  const typeToVerb: Record<string, string> = {
+    shipped: "shipped",
+    wip: "is building",
+    video: "shared",
+    live: "launched",
+    ambient: "posted",
   }
 
-  return rows.map((row) => ({
-    userName: row.authorName ?? "Someone",
-    action: typeToAction[row.type] ?? "posted",
-  }))
+  return rows.map((row) => {
+    const verb = typeToVerb[row.type] ?? "posted"
+    // Use headline, or first ~60 chars of body, or generic fallback
+    const what = row.headline
+      || (row.body ? row.body.substring(0, 60).replace(/\n/g, " ") : null)
+      || ""
+
+    return {
+      userName: row.authorName ?? "Someone",
+      action: what ? `${verb} "${what}"` : `${verb} something`,
+    }
+  })
 }

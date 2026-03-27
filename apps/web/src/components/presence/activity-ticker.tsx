@@ -24,8 +24,8 @@ export function ActivityTicker({ events }: ActivityTickerProps) {
   if (!events || events.length === 0) return null
 
   return (
-    <div className="relative overflow-hidden border-b border-[rgba(255,255,255,0.04)] bg-[rgba(0,255,136,0.02)]">
-      <div className="mx-auto flex h-8 max-w-2xl items-center gap-3 px-4">
+    <div className="relative overflow-hidden border-b border-[rgba(255,240,220,0.04)] bg-[rgba(196,149,106,0.02)]">
+      <div className="mx-auto flex h-8 items-center gap-3 px-4" style={{ maxWidth: 960 }}>
         {/* Breathing pulse dot */}
         <div className="ticker-pulse-dot h-1.5 w-1.5 flex-shrink-0 rounded-full bg-accent-green" />
 

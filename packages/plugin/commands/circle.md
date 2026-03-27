@@ -1,94 +1,102 @@
 ---
 name: circle
-description: See who's online in your vibecircle
-allowed-tools: Bash
+description: Manage your vibecircle circles — setup, status, add more
+allowed-tools: Bash, Read, Write
 user-invocable: true
 ---
 
-# /circle — See who's online
+# /circle — Manage your circles
 
-When the user invokes `/circle`, follow these steps:
+## Determine the subcommand
 
-## 1. Check configuration
+- `/circle` or `/circle status` → Section 1
+- `/circle setup` → Section 2
+- `/circle add` → Section 3
+- `/circle list` → Section 4
+- `/circle remove <name>` → Section 5
+- `/circle invite` → Section 6
+- `/circle config <name>` → Section 7
+
+## 1. Status (default)
 
 Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/lib/config.js check`
 
-If output starts with "not-configured", run `/circle setup` (see section 6 below).
-Then stop.
+If not configured, say "Not set up yet. Run `/circle setup` — takes 10 seconds."
 
-## 2. Get the circle ID
+If configured, run `node ${CLAUDE_PLUGIN_ROOT}/scripts/lib/config.js circles` and show the output nicely.
 
-Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/lib/config.js get circleId`
+## 2. First-time setup
 
-Save the output as CIRCLE_ID.
+Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/lib/config.js check`
 
-## 3. Fetch presence data
+If already configured, say "Already connected. Use `/circle add` to connect another circle."
 
-Run: `node -e "
-const api = require('${CLAUDE_PLUGIN_ROOT}/scripts/lib/api-client');
-api.get('/api/circles/${CIRCLE_ID}/presence').then(data => {
-  if (data) process.stdout.write(JSON.stringify(data, null, 2));
-  else process.stdout.write('null');
-}).catch(() => process.stdout.write('null'));
-"`
+If not configured:
 
-Note: Replace ${CIRCLE_ID} with the actual value from step 2.
+a. Say: "Opening your browser to authorize..."
+b. Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/device-auth.js`
+c. That's it. The script handles everything — auth, circle name detection, config with defaults (casual tone, all repos, everything filter).
+d. After it completes, say: "You're all set! The plugin will suggest sharing as you build. Use `/share` anytime to share manually."
 
-## 4. Display the results
+**Do NOT ask any questions.** No name, no tone, no repos, no filter. Defaults are fine. Users can customize later with `/circle config`.
 
-Parse the JSON response and display it nicely:
+After setup, suggest: "Tip: You can add more circles for different audiences — like a team circle with technical tone, or an execs circle that only shows milestones. Try `/circle add` when you're ready."
 
-**Format:**
+## 3. Add another circle
 
+a. Say: "Opening your browser to authorize a new circle..."
+b. Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/device-auth.js`
+c. After it completes, say: "Added! Want to customize this circle's settings? You can set the tone (casual/technical/non-technical/business-impact), filter (everything/features-only/milestones-only), and which repos post here. Run `/circle config <name>` to adjust."
+
+**Do NOT ask questions during add either.** Defaults are applied. Users customize after if they want.
+
+## 4. List circles
+
+Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/lib/config.js circles`
+
+Format nicely:
 ```
-Your Circle
-===========
-
-Building:
-  - Alice (2 min ago)
-  - Bob (5 min ago)
-
-Online:
-  - Charlie (12 min ago)
-
-Away:
-  - Dave (1 hour ago)
-
-Recent Activity:
-  - Alice shipped "New landing page" (10 min ago)
-  - Bob is working on "Auth flow fixes"
+Your circles:
+  1. Mindshare (casual) — all repos, everything
+  2. Eng Team (technical) — vibecircle, singlefile — everything
 ```
 
-Group members by status: building, online, away. Show recent activity if available.
+## 5. Remove a circle
 
-If no members are found or the response is null, say: "Couldn't fetch circle data. Check your config with `node ${CLAUDE_PLUGIN_ROOT}/scripts/lib/config.js check`"
+```bash
+node -e "
+const { removeCircle } = require('${CLAUDE_PLUGIN_ROOT}/scripts/lib/config');
+removeCircle('<name from args>');
+console.log('Removed.');
+"
+```
 
-## 5. Handle "invite" argument
+## 6. Invite info
 
-If the user ran `/circle invite`, instead of the above, explain:
+"Use the **Invite** button in the top bar on vibecircle.dev, or share your circle's invite link."
 
-"To invite someone to your circle, share your circle's invite link. You can find it in the Vibecircle web app under your circle's settings, or ask a circle admin to generate one."
+## 7. Configure a circle
 
-## 6. Handle "setup" argument
+The user ran `/circle config <name>`. Ask what they want to change:
 
-If the user ran `/circle setup`, or if step 1 found the plugin is not configured, follow these steps:
+- **Tone**: casual / technical / non-technical / business-impact
+- **Filter**: everything / features-only / milestones-only
+- **Repos**: all, or specific repos (owner/repo, comma-separated)
 
-### 6a. Run the device auth flow
+Only ask about the thing they want to change. Example: "What tone? (casual / technical / non-technical / business-impact)"
 
-Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/device-auth.js`
-
-This will:
-1. Request a device code from the server
-2. Open the browser for the user to authorize
-3. Poll until the user authorizes (or the code expires)
-4. Auto-write the config to `~/.vibecircle/config.json`
-
-Tell the user:
-"Starting plugin setup — a browser window will open for you to authorize. Just click Authorize and it will auto-configure."
-
-### 6b. Verify the config
-
-After the script finishes, run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/lib/config.js check`
-
-- If output starts with "configured", tell the user: "You're all set! Your plugin is connected to vibecircle."
-- If output starts with "not-configured", tell the user: "Hmm, something went wrong. You can try again with `/circle setup`, or set up manually at https://vibecircle.dev/setup/plugin"
+Then update:
+```bash
+node -e "
+const { getConfig, saveConfig } = require('${CLAUDE_PLUGIN_ROOT}/scripts/lib/config');
+const config = getConfig();
+const circle = config.circles.find(c => c.name.toLowerCase() === '<name>'.toLowerCase());
+if (circle) {
+  circle.<field> = '<value>';
+  saveConfig(config);
+  console.log('Updated!');
+} else {
+  console.log('Circle not found. Run /circle list to see your circles.');
+}
+"
+```

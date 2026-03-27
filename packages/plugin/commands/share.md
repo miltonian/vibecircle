@@ -1,81 +1,119 @@
 ---
 name: share
-description: Share what you're building with your vibecircle
+description: Share what you're building with your vibecircles
 allowed-tools: Bash, Read, Write, mcp__plugin_playwright_playwright__browser_navigate, mcp__plugin_playwright_playwright__browser_take_screenshot
 user-invocable: true
 ---
 
 # /share — Share what you're building
 
-When the user invokes `/share`, follow these steps:
-
 ## 1. Check configuration
 
 Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/lib/config.js check`
 
-If output starts with "not-configured", tell the user how to set up and stop.
+If not configured, tell user to run `/circle setup`.
 
-## 2. Read session context
+## 2. Determine matching circles
 
-Read `~/.vibecircle/session.json` if it exists. This gives you context about the current project, active arc, and what's been shared already.
+Detect current repo: run `git remote get-url origin` and parse out the `owner/repo` part.
 
-## 3. Capture a screenshot
+Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/lib/config.js circles-for-repo <owner/repo>`
 
-Try to capture a screenshot of what the user is building. Use this priority order to find the right URL:
+This returns the circles whose repo scope includes this repo. If no circles match, ask: "This repo isn't mapped to any circle. Which circles should it post to?" Show numbered list of all circles, let user pick, and ask "Remember this for next time?" If yes, update the circle's repos in config.
 
-**a. Check conversation context first.** If a dev server was started earlier in this conversation, you already know the URL and port. Use that. Do NOT blindly scan ports — another project might be running on a common port.
+## 3. Read session context
 
-**b. Check the current project's dev server.** If you don't know from context, detect the project's framework and find its process:
-   - Run: `lsof -i -P -n | grep LISTEN | grep -E "node|bun|next" | grep "$(pwd)" 2>/dev/null` to find processes in the current directory
-   - Or check `.next/` directory existence and read the dev log if available
-   - Only use a localhost URL if you can confirm it belongs to THIS project
+Read `~/.vibecircle/session.json` if it exists.
 
-**c. Use the production URL.** Check `package.json` for a `homepage` field, or read `~/.vibecircle/config.json` for `apiUrl`. For vibecircle specifically, the production URL is `https://vibecircle.dev`. A production screenshot is better than screenshotting the wrong app.
+## 4. Capture a screenshot
 
-**d. Screenshot with Playwright MCP.** Once you have a URL:
-   - Call `mcp__plugin_playwright_playwright__browser_navigate` with the URL
-   - Call `mcp__plugin_playwright_playwright__browser_take_screenshot` with `type: "jpeg"` and `filename: "/tmp/vibecircle-share-{timestamp}.jpeg"`
-   - Save the output file path for step 6
+Try to capture a screenshot (same strategy as before):
+a. Check conversation context for dev server URL
+b. Detect via `lsof` for this project
+c. Use production URL from config `apiUrl`
+d. Screenshot with Playwright MCP
+e. If nothing works, ask: "Want to attach a screenshot? Drop a file path or say 'skip'."
 
-**e. Skip if nothing works.** Screenshots are optional. Don't worry about it.
+## 5. Apply filters
 
-## 4. Generate the post draft
+For each matching circle, check its `filter`:
+- `"everything"` → always qualifies
+- `"features-only"` → check if this is feature work (new UI, new functionality). Ask yourself: is this a feature or just a fix/refactor? If unsure, include it.
+- `"milestones-only"` → check if this was deployed/shipped. If not, skip this circle.
 
-Based on the conversation context, recent git activity (`git diff --stat HEAD~3`, `git log --oneline -5`), and session context, write:
+Remove circles that don't qualify.
 
-- **headline**: One line, plain English, no jargon. Anyone should understand it.
-- **body**: 2-3 sentences describing what was built and why it matters. Write for a non-technical audience.
-- **type**: Ask the user — "shipped" or "wip" (default wip)
+## 6. Generate per-circle posts
 
-If there's an active arc in session.json that matches the current work, use it. Otherwise, create a new arc with a descriptive title.
+For each qualifying circle, write a headline and body using the circle's `tone`:
 
-## 5. Show preview
+- `"casual"` — write like telling a friend. Informal, enthusiastic, short.
+- `"technical"` — include frameworks, architecture, tradeoffs. For engineers.
+- `"non-technical"` — focus on what it does for users. For PMs/designers.
+- `"business-impact"` — focus on outcomes, metrics, who benefits. For leadership.
 
-Show the user:
+**Write the body in markdown.** The feed renders markdown, so use it:
+- Use **bold** for emphasis on key points
+- Use bullet lists when describing multiple changes or features
+- Use `code` for technical terms, commands, or file names
+- Use > blockquotes for notable outcomes or metrics
+- Keep paragraphs short — 2-3 sentences max per paragraph
+- Don't overdo it — markdown should make it easier to scan, not harder
+
+Also determine type: "shipped" if deployed, "wip" otherwise.
+
+Read session context for arc info. Use the same arc across all circles.
+
+## 7. Show numbered preview
+
+Show ALL versions with FULL content (no truncation):
 
 ```
-Ready to share:
+vibecircle — Ready to share to N circles:
 
-  **[headline]**
-  [body]
+  1. Friends (casual)
+     [headline]
+     [full body]
 
-  Type: [shipped/wip] · [📸 Screenshot if captured] · [Arc: "title" if applicable]
+  2. Eng Team (technical)
+     [headline]
+     [full body]
 
-Look good? You can edit the headline or description, change the type, or just say "send it".
+  3. Product (non-technical)
+     [headline]
+     [full body]
+
+  [📸 Screenshot attached (or "No screenshot")]
+
+Post: [all] · [1,2,3] · [skip] · [edit 2] · [📸 add screenshot]
 ```
 
-## 6. Post to the circle
+Wait for user input:
+- `all` → post to all circles
+- `1,2` or `1,3` → post to specific circles by number
+- `skip` → don't post
+- `edit 2` → ask what to change for circle 2, update, re-show
+- `📸` or `screenshot` → ask for file path
 
-After the user approves (or edits), run:
+## 8. Post to selected circles
 
+For each selected circle, run:
+
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/post-to-circle.js \
+  --circle-id <circleId> \
+  --type <type> \
+  --body "<body for this circle>" \
+  --headline "<headline for this circle>" \
+  --arc-id "<arcId>" \
+  --arc-title "<arcTitle>" \
+  --arc-sequence <arcSequence>
 ```
-node ${CLAUDE_PLUGIN_ROOT}/scripts/post-to-circle.js --type <type> --body "<body>" --headline "<headline>" --arc-id "<arcId>" --arc-title "<arcTitle>" --arc-sequence <arcSequence>
-```
 
-Add `--screenshot <path>` if a screenshot was captured.
+Add `--screenshot <path>` if one was captured (same screenshot for all circles).
 
-## 7. Confirm
+## 9. Confirm
 
-If successful, tell the user: "Shared to your circle!"
+Tell user which circles were posted to: "Shared to Friends, Eng Team!"
 
-Update `~/.vibecircle/session.json` milestones with the headline.
+Update `~/.vibecircle/session.json` milestones.
