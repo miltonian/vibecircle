@@ -232,7 +232,7 @@ export function TimelapseViewer({
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       {/* Top bar */}
-      <div className="flex items-center justify-between px-4 py-3 sm:px-6">
+      <div className="relative z-[60] flex items-center justify-between px-4 py-3 sm:px-6">
         <div className="flex items-center gap-3">
           <button
             onClick={(e) => { e.stopPropagation(); onClose(); }}
@@ -279,7 +279,7 @@ export function TimelapseViewer({
       </div>
 
       {/* Controls bar */}
-      <div className="px-4 py-4 sm:px-6">
+      <div className="relative z-[60] px-4 py-4 sm:px-6">
         <TimelapseControls
           currentFrame={currentFrame}
           totalFrames={totalFrames}
