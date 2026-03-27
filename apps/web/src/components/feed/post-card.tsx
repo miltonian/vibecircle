@@ -99,6 +99,11 @@ export function PostCard({ post, index, userId, circleId }: PostCardProps) {
           <div className="relative mt-2 overflow-visible border-t border-border-dim pt-2">
             <ReactionBar postId={post.id} initialReactions={initialReactions} userId={userId} />
           </div>
+
+          {/* Comments */}
+          <div className="mt-2">
+            <CommentList postId={post.id} initialCommentCount={post.commentCount} />
+          </div>
         </article>
 
         {/* Timelapse modal */}
