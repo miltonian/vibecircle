@@ -39,7 +39,12 @@ function suggest(message) {
     process.exit(0);
   }
   setLastSuggestTime();
-  process.stdout.write(message + "\n");
+  // Output goes into Claude's context — Claude will relay this to the user
+  const output = JSON.stringify({
+    decision: "approve",
+    systemMessage: `[vibecircle] ${message}. Briefly mention this to the user — don't be pushy, just let them know they can use /share if they want to share what they've been building.`
+  });
+  process.stdout.write(output);
   process.exit(0);
 }
 
