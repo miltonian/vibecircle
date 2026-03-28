@@ -91,6 +91,9 @@ export function PostCard({ post, index, userId, circleId }: PostCardProps) {
               arcId={post.arcId}
               circleId={circleId}
               totalPosts={post.arcTotalPosts}
+              epicRef={post.arcEpicRef}
+              ticket={post.metadata?.ticket}
+              epicProgress={post.metadata?.epicProgress}
               onPlayTimelapse={timelapseHandler}
             />
           )}
@@ -158,6 +161,9 @@ export function PostCard({ post, index, userId, circleId }: PostCardProps) {
                 arcId={post.arcId}
                 circleId={circleId}
                 totalPosts={post.arcTotalPosts}
+                epicRef={post.arcEpicRef}
+                ticket={post.metadata?.ticket}
+                epicProgress={post.metadata?.epicProgress}
                 onPlayTimelapse={timelapseHandler}
               />
             </div>
@@ -213,6 +219,9 @@ export function PostCard({ post, index, userId, circleId }: PostCardProps) {
             arcId={post.arcId}
             circleId={circleId}
             totalPosts={post.arcTotalPosts}
+            epicRef={post.arcEpicRef}
+            ticket={post.metadata?.ticket}
+            epicProgress={post.metadata?.epicProgress}
             onPlayTimelapse={timelapseHandler}
           />
         )}
