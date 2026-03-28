@@ -14,6 +14,18 @@ export interface PostMetadata {
   commits_count?: number
   files_changed?: number
   tech_tags?: string[]
+  ticket?: {
+    source: string
+    id: string
+    title: string
+    url: string
+    status: string
+  }
+  epicProgress?: {
+    total: number
+    done: number
+    inProgress: number
+  }
 }
 
 export interface PostAuthor {
@@ -29,6 +41,8 @@ export interface FeedPost {
   headline: string | null
   arcId: string | null
   arcTitle: string | null
+  arcStatus: string | null
+  arcEpicRef: { source: string; id: string; url: string } | null
   arcSequence: number | null
   arcTotalPosts: number | null
   media: PostMedia[] | null
