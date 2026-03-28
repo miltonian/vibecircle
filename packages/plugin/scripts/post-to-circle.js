@@ -13,7 +13,9 @@ const { post, uploadFile } = require("./lib/api-client");
 
 /** Parse command-line arguments */
 function parseArgs(argv) {
-  const args = { type: "wip", body: "", screenshot: "", headline: "", arcId: "", arcTitle: "", arcSequence: "", circleId: "" };
+  const args = { type: "wip", body: "", screenshot: "", headline: "", arcId: "", arcTitle: "", arcSequence: "", circleId: "",
+    ticketSource: "", ticketId: "", ticketTitle: "", ticketUrl: "", ticketStatus: "",
+    epicTotal: "", epicDone: "", epicInProgress: "" };
   for (let i = 2; i < argv.length; i++) {
     if (argv[i] === "--type" && argv[i + 1]) {
       args.type = argv[++i];
@@ -31,6 +33,22 @@ function parseArgs(argv) {
       args.arcSequence = argv[++i];
     } else if (argv[i] === "--circle-id" && argv[i + 1]) {
       args.circleId = argv[++i];
+    } else if (argv[i] === "--ticket-source" && argv[i + 1]) {
+      args.ticketSource = argv[++i];
+    } else if (argv[i] === "--ticket-id" && argv[i + 1]) {
+      args.ticketId = argv[++i];
+    } else if (argv[i] === "--ticket-title" && argv[i + 1]) {
+      args.ticketTitle = argv[++i];
+    } else if (argv[i] === "--ticket-url" && argv[i + 1]) {
+      args.ticketUrl = argv[++i];
+    } else if (argv[i] === "--ticket-status" && argv[i + 1]) {
+      args.ticketStatus = argv[++i];
+    } else if (argv[i] === "--epic-total" && argv[i + 1]) {
+      args.epicTotal = argv[++i];
+    } else if (argv[i] === "--epic-done" && argv[i + 1]) {
+      args.epicDone = argv[++i];
+    } else if (argv[i] === "--epic-in-progress" && argv[i + 1]) {
+      args.epicInProgress = argv[++i];
     }
   }
   return args;
@@ -96,6 +114,25 @@ async function main() {
   }
 
   const metadata = getGitMetadata();
+
+  // Add ticket metadata if provided
+  if (args.ticketId) {
+    metadata.ticket = {
+      source: args.ticketSource || "unknown",
+      id: args.ticketId,
+      title: args.ticketTitle || "",
+      url: args.ticketUrl || "",
+      status: args.ticketStatus || "unknown",
+    };
+  }
+
+  if (args.epicTotal) {
+    metadata.epicProgress = {
+      total: parseInt(args.epicTotal, 10) || 0,
+      done: parseInt(args.epicDone, 10) || 0,
+      inProgress: parseInt(args.epicInProgress, 10) || 0,
+    };
+  }
 
   // Build media array
   const media = [];

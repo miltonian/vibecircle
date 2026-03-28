@@ -33,16 +33,15 @@ function setLastSuggestTime() {
 }
 
 function suggest(trigger, circleNames, config) {
-  // Don't suggest more than once every 5 minutes
   const last = getLastSuggestTime();
   if (Date.now() - last < 5 * 60 * 1000) {
     process.exit(0);
   }
   setLastSuggestTime();
 
-  // Read circles config for tone info
   const circles = config.circles || [];
-  const circleInfo = circles.map(c => `${c.name} (tone: ${c.tone}, filter: ${c.filter})`).join(", ");
+  const circleInfo = circles.map(c => `${c.name} (id: ${c.id}, tone: ${c.tone}, filter: ${c.filter})`).join(", ");
+  const apiUrl = config.apiUrl || "https://vibecircle.dev";
 
   const output = JSON.stringify({
     decision: "approve",
@@ -50,14 +49,40 @@ function suggest(trigger, circleNames, config) {
 
 This looks like a good moment to share with the user's circles: ${circleInfo}.
 
-Do this now:
-1. Based on what was just built in this conversation, draft a post for each matching circle. Write a headline (one line, plain English, no jargon) and a body (2-3 sentences, markdown OK). Adapt the tone per circle.
-2. Try to capture a screenshot if UI work was done — check conversation context for a dev server URL, or use the production URL from ~/.vibecircle/config.json apiUrl field. Use Playwright MCP tools if available.
-3. Show the user a preview of all drafts numbered, with full content. Ask: Post: [all] · [1,2] · [skip] · [edit N]
+**Arc Resolution — do this first:**
+1. Check if ~/.vibecircle/arc-map.json exists. If so, read it and look for the current branch name as a key.
+   - If found and "resolvedAt" is less than 24 hours old, use the cached arcId and arcTitle.
+   - If not found or stale, continue to step 2.
+2. Get the current branch: git branch --show-current
+3. Parse the branch name for a ticket ID pattern (e.g., PAY-123, PROJ-123, #123, feat/PAY-123-description).
+4. If a ticket ID is found, try to look it up:
+   - If Linear MCP tools are available, use them to get the issue and its parent project/epic.
+   - If GitHub CLI is available, try: gh issue view <number> --json title,projectItems
+   - If Jira MCP tools are available, use them.
+5. If you found a parent epic/project:
+   - Check existing arcs: GET ${apiUrl}/api/circles/<circleId>/arcs (use Bearer token from ~/.vibecircle/config.json authToken)
+   - If an arc exists with matching epicRef, use it. Note its ID.
+   - If no match, create a new arc: POST ${apiUrl}/api/circles/<circleId>/arcs with {"title": "<epic/project name>", "epicRef": {"source": "linear|jira|github", "id": "<epicId>", "url": "<epicUrl>"}}
+   - Save the new arc ID.
+6. If you could NOT find a ticket or epic:
+   - Auto-generate an arc name from the repo name, branch, and nature of the changes.
+   - Tell the user: "I couldn't find a ticket for this branch. I'm calling this arc '<name>'. Want to attach it to an existing arc instead?" Then list active arcs as numbered options.
+7. Determine the arc sequence: count existing posts in this arc + 1.
+8. Save the branch→arc mapping to ~/.vibecircle/arc-map.json for next time.
+
+**If you found ticket info, also gather:**
+- ticket source, ID, title, URL, status
+- epic/project progress (total tickets, done, in-progress)
+
+**Then draft and share:**
+1. Based on what was just built, draft a post for each matching circle. Write a headline (one line, plain English) and a body (2-3 sentences, markdown). Adapt tone per circle.
+2. Try to capture a screenshot if UI work was done.
+3. Show the user a numbered preview with full content. Ask: Post: [all] · [1,2] · [skip] · [edit N]
 4. If they approve, post each via: node ${process.env.CLAUDE_PLUGIN_ROOT || "PLUGIN_ROOT"}/scripts/post-to-circle.js --circle-id <id> --type <shipped|wip> --headline "<headline>" --body "<body>" --arc-id "<arcId>" --arc-title "<arcTitle>" --arc-sequence <n>
+   Add ticket flags if available: --ticket-source <source> --ticket-id <id> --ticket-title "<title>" --ticket-url "<url>" --ticket-status "<status>" --epic-total <n> --epic-done <n> --epic-in-progress <n>
 5. Add --screenshot <path> if one was captured.
 
-Be casual about it — don't be robotic. Something like "Looks like you shipped something cool — want to share it?" then show the preview.`
+Be casual — "Looks like you made progress on <arc name> — want to share it?"`
   });
   process.stdout.write(output);
   process.exit(0);

@@ -21,29 +21,92 @@ Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/lib/config.js circles-for-repo <owner/r
 
 This returns the circles whose repo scope includes this repo. If no circles match, ask: "This repo isn't mapped to any circle. Which circles should it post to?" Show numbered list of all circles, let user pick, and ask "Remember this for next time?" If yes, update the circle's repos in config.
 
-## 3. Read session context
+## 3. Resolve arc context
 
-Read `~/.vibecircle/session.json` if it exists.
+This is critical — every post should belong to an arc.
+
+**Step 3a: Check local cache**
+Read `~/.vibecircle/arc-map.json` if it exists. Look for the current branch name as a key.
+- If found and `resolvedAt` is less than 24 hours old → use the cached `arcId` and `arcTitle`. Skip to step 4.
+
+**Step 3b: Parse branch for ticket ID**
+Get the current branch: `git branch --show-current`
+Look for ticket ID patterns: `PAY-123`, `PROJ-123`, `#123`, `feat/PAY-123-description`, etc.
+
+**Step 3c: Look up ticket → epic**
+If a ticket ID is found, try to resolve it:
+- **Linear MCP:** Get the issue, find its parent project/cycle
+- **GitHub CLI:** `gh issue view <number> --json title,projectItems`
+- **Jira MCP:** Get the issue, find its parent epic
+- If none are available, skip to step 3e.
+
+**Step 3d: Match or create arc**
+Read the API URL from config (`~/.vibecircle/config.json` → `apiUrl`) and the auth token (`authToken`).
+
+Check existing arcs:
+```
+curl -s -H "Authorization: Bearer <authToken>" <apiUrl>/api/circles/<circleId>/arcs
+```
+
+If an arc exists with a matching epicRef (same source and id), use it.
+
+If no match, create one:
+```
+curl -s -X POST -H "Authorization: Bearer <authToken>" -H "Content-Type: application/json" \
+  -d '{"title":"<epic name>","epicRef":{"source":"<linear|jira|github>","id":"<epicId>","url":"<epicUrl>"}}' \
+  <apiUrl>/api/circles/<circleId>/arcs
+```
+
+Use the returned arc ID.
+
+**Step 3e: Fallback (no ticket found)**
+Auto-generate an arc name from git context (repo name, branch name, nature of changes).
+Tell the user: "I couldn't find a ticket for this branch. I'm calling this arc **<name>**. Want to attach it to an existing arc instead?"
+List active arcs as numbered options. User picks or accepts.
+
+**Step 3f: Determine sequence**
+Count posts in this arc (from the arcs list response → `postCount`) and set sequence to `postCount + 1`.
+
+**Step 3g: Update local cache**
+Write the branch→arc mapping to `~/.vibecircle/arc-map.json`:
+```json
+{
+  "<branch-name>": {
+    "arcId": "<uuid>",
+    "arcTitle": "<title>",
+    "lastSequence": <n>,
+    "resolvedAt": "<ISO timestamp>"
+  }
+}
+```
 
 ## 4. Capture a screenshot
 
-Try to capture a screenshot (same strategy as before):
+Try to capture a screenshot:
 a. Check conversation context for dev server URL
 b. Detect via `lsof` for this project
 c. Use production URL from config `apiUrl`
 d. Screenshot with Playwright MCP
 e. If nothing works, ask: "Want to attach a screenshot? Drop a file path or say 'skip'."
 
-## 5. Apply filters
+## 5. Gather ticket metadata (if available)
+
+If you resolved a ticket in step 3c, gather:
+- **ticket**: source, id, title, url, status
+- **epicProgress**: total tickets in epic, done count, in-progress count
+
+These will be passed as flags to post-to-circle.js.
+
+## 6. Apply filters
 
 For each matching circle, check its `filter`:
 - `"everything"` → always qualifies
-- `"features-only"` → check if this is feature work (new UI, new functionality). Ask yourself: is this a feature or just a fix/refactor? If unsure, include it.
+- `"features-only"` → check if this is feature work. If unsure, include it.
 - `"milestones-only"` → check if this was deployed/shipped. If not, skip this circle.
 
 Remove circles that don't qualify.
 
-## 6. Generate per-circle posts
+## 7. Generate per-circle posts
 
 For each qualifying circle, write a headline and body using the circle's `tone`:
 
@@ -52,24 +115,20 @@ For each qualifying circle, write a headline and body using the circle's `tone`:
 - `"non-technical"` — focus on what it does for users. For PMs/designers.
 - `"business-impact"` — focus on outcomes, metrics, who benefits. For leadership.
 
-**Write the body in markdown.** The feed renders markdown, so use it:
-- Use **bold** for emphasis on key points
-- Use bullet lists when describing multiple changes or features
-- Use `code` for technical terms, commands, or file names
-- Use > blockquotes for notable outcomes or metrics
-- Keep paragraphs short — 2-3 sentences max per paragraph
-- Don't overdo it — markdown should make it easier to scan, not harder
+**Write the body in markdown.** Use bold, bullet lists, `code`, blockquotes. Keep paragraphs short.
 
 Also determine type: "shipped" if deployed, "wip" otherwise.
 
-Read session context for arc info. Use the same arc across all circles.
+Use the same arc across all circles.
 
-## 7. Show numbered preview
+## 8. Show numbered preview
 
 Show ALL versions with FULL content (no truncation):
 
 ```
 vibecircle — Ready to share to N circles:
+
+  Arc: <arc title> (Nth update)
 
   1. Friends (casual)
      [headline]
@@ -79,13 +138,9 @@ vibecircle — Ready to share to N circles:
      [headline]
      [full body]
 
-  3. Product (non-technical)
-     [headline]
-     [full body]
-
   [📸 Screenshot attached (or "No screenshot")]
 
-Post: [all] · [1,2,3] · [skip] · [edit 2] · [📸 add screenshot]
+Post: [all] · [1,2,3] · [skip] · [edit 2] · [📸 add screenshot] · [🚀 ship arc]
 ```
 
 Wait for user input:
@@ -94,12 +149,13 @@ Wait for user input:
 - `skip` → don't post
 - `edit 2` → ask what to change for circle 2, update, re-show
 - `📸` or `screenshot` → ask for file path
+- `ship` or `🚀` → mark this as the final post, set arc to shipped after posting
 
-## 8. Post to selected circles
+## 9. Post to selected circles
 
 For each selected circle, run:
 
-```bash
+```
 node ${CLAUDE_PLUGIN_ROOT}/scripts/post-to-circle.js \
   --circle-id <circleId> \
   --type <type> \
@@ -107,13 +163,31 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/post-to-circle.js \
   --headline "<headline for this circle>" \
   --arc-id "<arcId>" \
   --arc-title "<arcTitle>" \
-  --arc-sequence <arcSequence>
+  --arc-sequence <arcSequence> \
+  --ticket-source "<source>" \
+  --ticket-id "<ticketId>" \
+  --ticket-title "<ticketTitle>" \
+  --ticket-url "<ticketUrl>" \
+  --ticket-status "<ticketStatus>" \
+  --epic-total <total> \
+  --epic-done <done> \
+  --epic-in-progress <inProgress>
 ```
 
-Add `--screenshot <path>` if one was captured (same screenshot for all circles).
+Add `--screenshot <path>` if one was captured. Omit ticket/epic flags if not available.
 
-## 9. Confirm
+## 10. Ship arc (if requested)
+
+If user chose "ship":
+```
+curl -s -X PATCH -H "Authorization: Bearer <authToken>" -H "Content-Type: application/json" \
+  -d '{"status":"shipped"}' \
+  <apiUrl>/api/circles/<circleId>/arcs/<arcId>
+```
+
+## 11. Confirm
 
 Tell user which circles were posted to: "Shared to Friends, Eng Team!"
+If arc was shipped: "🚀 Arc '<arc title>' marked as shipped!"
 
-Update `~/.vibecircle/session.json` milestones.
+Update the local arc-map cache with the new sequence number.
