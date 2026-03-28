@@ -76,21 +76,73 @@ export function FeedSidebar({ circleId, selectedArc, onArcSelect }: FeedSidebarP
         >
           All posts
         </button>
-        {(arcs ?? []).map((arc) => {
-          const arcKey = arc.arcId || arc.arcTitle || "unknown"
-          return (
+
+        {/* Active arcs */}
+        {(arcs ?? []).filter((a) => a.status === "active").map((arc) => (
           <button
-            key={arcKey}
-            onClick={() => onArcSelect(arcKey)}
-            className={`mb-1 flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-xs transition-colors ${
-              selectedArc === arcKey ? "bg-accent-green/[0.06] text-text-primary" : "text-accent-green hover:bg-bg-elevated"
+            key={arc.id}
+            onClick={() => onArcSelect(arc.id)}
+            className={`mb-1 flex w-full flex-col gap-1.5 rounded-lg px-3 py-2 text-left transition-colors ${
+              selectedArc === arc.id ? "bg-accent-green/[0.06]" : "hover:bg-bg-elevated"
             }`}
           >
-            <span className="font-medium">{arc.arcTitle ?? "Untitled"}</span>
-            <span className="text-text-dim">{arc.postCount}</span>
+            <div className="flex items-center gap-1.5">
+              <div className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent-green" />
+              <span className="text-xs font-medium text-text-primary truncate">{arc.title}</span>
+            </div>
+            {arc.epicProgress && arc.epicProgress.total > 0 && (
+              <div className="flex items-center gap-2">
+                <div className="flex-1 h-[3px] rounded-full bg-bg-elevated overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-accent-green/60"
+                    style={{ width: `${(arc.epicProgress.done / arc.epicProgress.total) * 100}%` }}
+                  />
+                </div>
+                <span className="text-[10px] text-text-dim">{arc.epicProgress.done}/{arc.epicProgress.total}</span>
+              </div>
+            )}
+            <div className="flex items-center gap-1">
+              {arc.contributors.slice(0, 3).map((c, i) => (
+                <div
+                  key={c.id}
+                  className="flex h-[18px] w-[18px] items-center justify-center rounded-full border-[1.5px] border-bg-card text-[8px] font-bold"
+                  style={{ marginLeft: i > 0 ? -6 : 0, backgroundColor: `hsl(${c.id.charCodeAt(0) * 37 % 360}, 40%, 35%)` }}
+                >
+                  <span className="text-text-primary">{(c.name?.[0] ?? "?").toUpperCase()}</span>
+                </div>
+              ))}
+              <span className="text-[10px] text-text-dim ml-1">
+                {arc.latestAt ? timeAgoShort(arc.latestAt) : ""}
+              </span>
+            </div>
           </button>
-          )
-        })}
+        ))}
+
+        {/* Shipped arcs */}
+        {(arcs ?? []).filter((a) => a.status === "shipped").length > 0 && (
+          <>
+            <div className="mt-3 mb-2 text-[9px] font-semibold uppercase tracking-wider text-text-dim">
+              Shipped
+            </div>
+            {(arcs ?? []).filter((a) => a.status === "shipped").map((arc) => (
+              <button
+                key={arc.id}
+                onClick={() => onArcSelect(arc.id)}
+                className={`mb-1 flex w-full items-center gap-1.5 rounded-lg px-3 py-2 text-left text-xs transition-colors opacity-70 ${
+                  selectedArc === arc.id ? "bg-accent-green/[0.06]" : "hover:bg-bg-elevated"
+                }`}
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-accent-green shrink-0">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                <span className="font-medium text-text-secondary truncate">{arc.title}</span>
+                <span className="ml-auto text-[10px] text-text-dim">
+                  {arc.shippedAt ? new Date(arc.shippedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : ""}
+                </span>
+              </button>
+            ))}
+          </>
+        )}
       </div>
 
       <hr className="mb-4 border-border-dim" />
