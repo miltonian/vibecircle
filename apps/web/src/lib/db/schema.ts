@@ -83,6 +83,23 @@ export const circles = pgTable("circles", {
 export type Circle = typeof circles.$inferSelect
 export type NewCircle = typeof circles.$inferInsert
 
+// ── Arcs ──────────────────────────────────────────────────────────────────
+export const arcs = pgTable("arcs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  circleId: uuid("circle_id")
+    .references(() => circles.id)
+    .notNull(),
+  title: text("title").notNull(),
+  status: text("status").notNull().default("active"), // 'active' | 'shipped'
+  epicRef: jsonb("epic_ref"), // {source, id, url} or null
+  createdBy: uuid("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  shippedAt: timestamp("shipped_at"),
+})
+
+export type Arc = typeof arcs.$inferSelect
+export type NewArc = typeof arcs.$inferInsert
+
 // ── Circle Members ─────────────────────────────────────────────────────────
 export const circleMembers = pgTable(
   "circle_members",
@@ -116,7 +133,7 @@ export const posts = pgTable("posts", {
   media: jsonb("media"), // array of {type, url, caption}
   metadata: jsonb("metadata"),
   headline: text("headline"), // AI-written one-liner anyone understands
-  arcId: text("arc_id"), // Groups posts from same feature/work stream
+  arcId: uuid("arc_id").references(() => arcs.id), // FK to arcs table
   arcTitle: text("arc_title"), // Human-readable arc name ("Payment Integration")
   arcSequence: integer("arc_sequence"), // Position in the arc (1, 2, 3...)
   createdAt: timestamp("created_at").defaultNow(),
