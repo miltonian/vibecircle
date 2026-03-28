@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { createPost } from "@/lib/db/queries"
+import { createPost, getArc, updateArcStatus } from "@/lib/db/queries"
 import { db } from "@/lib/db"
 import { circleMembers } from "@/lib/db/schema"
 import { eq, and } from "drizzle-orm"
@@ -43,6 +43,14 @@ export async function POST(
       { error: `Invalid post type. Must be one of: ${VALID_TYPES.join(", ")}` },
       { status: 400 }
     )
+  }
+
+  // Auto-reopen shipped arcs when a new post is added
+  if (body.arcId) {
+    const arc = await getArc(body.arcId)
+    if (arc && arc.status === "shipped") {
+      await updateArcStatus(body.arcId, "active")
+    }
   }
 
   const post = await createPost(circleId, userId, {
