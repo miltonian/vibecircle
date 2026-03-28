@@ -1,23 +1,31 @@
 "use client"
 
 import { useFeed } from "@/hooks/use-feed"
+import { useArcs } from "@/hooks/use-arcs"
 import { PostCard } from "./post-card"
 import { CreatePostDialog } from "./create-post-dialog"
 import { InstallBanner } from "@/components/onboarding/install-banner"
+import { ArcDetailHeader } from "./arc-detail-header"
 
 interface FeedViewProps {
   circleId: string
   userId?: string
   hasToken?: boolean
   selectedArc?: string | null
+  onArcSelect?: (arcId: string | null) => void
 }
 
-export function FeedView({ circleId, userId, hasToken, selectedArc }: FeedViewProps) {
+export function FeedView({ circleId, userId, hasToken, selectedArc, onArcSelect }: FeedViewProps) {
   const { data, error, isLoading, mutate } = useFeed(circleId)
+  const { data: arcsData } = useArcs(circleId)
+
+  const selectedArcData = selectedArc
+    ? arcsData?.find((a) => a.id === selectedArc)
+    : null
 
   const posts = data?.posts ?? []
   const filteredPosts = selectedArc
-    ? posts.filter((p) => p.arcId === selectedArc || p.arcTitle === selectedArc)
+    ? posts.filter((p) => p.arcId === selectedArc)
     : posts
 
   return (
@@ -43,9 +51,23 @@ export function FeedView({ circleId, userId, hasToken, selectedArc }: FeedViewPr
           </div>
         </div>
       ) : filteredPosts.length === 0 ? (
-        <EmptyFeed hasToken={hasToken} selectedArc={selectedArc} />
+        <>
+          {selectedArcData && (
+            <ArcDetailHeader
+              arc={selectedArcData}
+              onClose={() => onArcSelect?.(null)}
+            />
+          )}
+          <EmptyFeed hasToken={hasToken} selectedArc={selectedArc} />
+        </>
       ) : (
         <div className="space-y-4">
+          {selectedArcData && (
+            <ArcDetailHeader
+              arc={selectedArcData}
+              onClose={() => onArcSelect?.(null)}
+            />
+          )}
           {filteredPosts.map((post, i) => (
             <PostCard key={post.id} post={post} index={i} userId={userId} circleId={circleId} />
           ))}

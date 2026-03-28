@@ -16,7 +16,7 @@ export function FeedWithSidebar({ circleId, userId, hasToken }: FeedWithSidebarP
   return (
     <div className="flex gap-6">
       <div className="min-w-0 flex-1">
-        <FeedView circleId={circleId} userId={userId} hasToken={hasToken} selectedArc={selectedArc} />
+        <FeedView circleId={circleId} userId={userId} hasToken={hasToken} selectedArc={selectedArc} onArcSelect={setSelectedArc} />
       </div>
       <FeedSidebar circleId={circleId} selectedArc={selectedArc} onArcSelect={setSelectedArc} />
     </div>
