@@ -18,9 +18,11 @@ function getDataDir() {
   return path.join(home, ".vibecircle");
 }
 
-/** Return the path to the config file */
+/** Return the path to the config file (env-aware via VIBECIRCLE_ENV) */
 function getConfigPath() {
-  return path.join(getDataDir(), "config.json");
+  const env = process.env.VIBECIRCLE_ENV;
+  const filename = env ? `config.${env}.json` : "config.json";
+  return path.join(getDataDir(), filename);
 }
 
 /** Read config, auto-migrate old format */

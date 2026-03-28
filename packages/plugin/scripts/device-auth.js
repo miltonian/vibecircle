@@ -8,21 +8,13 @@
 // 4. When authorized, write config to ~/.vibecircle/config.json
 // 5. Print success message
 
-const fs = require("fs");
-const path = require("path");
 const { execFileSync } = require("child_process");
-const { getConfig, saveConfig, addCircle, getConfigPath } = require("./lib/config");
+const { getConfig, saveConfig, getConfigPath } = require("./lib/config");
+const { get } = require("./lib/api-client");
 
-const API_URL = "https://vibecircle.dev";
+const API_URL = getConfig().apiUrl || "https://vibecircle.dev";
 
-/** Get the config directory */
-function getDataDir() {
-  if (process.env.CLAUDE_PLUGIN_DATA) {
-    return process.env.CLAUDE_PLUGIN_DATA;
-  }
-  const home = process.env.HOME || process.env.USERPROFILE || "";
-  return path.join(home, ".vibecircle");
-}
+const CIRCLE_DEFAULTS = { tone: "casual", filter: "everything", repos: "*" };
 
 /** Sleep for ms milliseconds */
 function sleep(ms) {
@@ -86,57 +78,44 @@ async function main() {
       const data = await res.json();
 
       if (data.status === "authorized") {
-        // Step 4: Write config
-        // Update shared auth fields
+        // Save auth credentials (single read-mutate-write)
         const config = getConfig();
         config.apiUrl = data.apiUrl;
         config.authToken = data.token;
         saveConfig(config);
 
-        // Fetch all user circles and sync them
-        let allCircles = [];
-        try {
-          const listRes = await fetch(`${API_URL}/api/circles`, {
-            headers: { Authorization: `Bearer ${data.token}` },
-          });
-          if (listRes.ok) {
-            allCircles = await listRes.json();
-          }
-        } catch {
-          // Circle fetch failed — we'll still add the selected circle below
-        }
+        // Fetch all user circles (uses saved token via api-client)
+        const allCircles = await get("/api/circles") || [];
 
         // Find the name of the explicitly-selected circle
         const selectedCircle = allCircles.find((c) => c.id === data.circleId);
         const circleName = selectedCircle?.name || "";
 
-        // Add the explicitly-selected circle first
-        addCircle({
-          id: data.circleId,
-          name: circleName || "My Circle",
-          tone: "casual",
-          filter: "everything",
-          repos: "*",
-        });
+        // Batch circle sync — single read, in-memory mutations, single write
+        const updatedConfig = getConfig();
+        const existingIds = new Set(updatedConfig.circles.map((c) => c.id));
 
-        // Sync remaining circles (only add new ones — don't overwrite customizations)
+        // Add the explicitly-selected circle first
+        if (!existingIds.has(data.circleId)) {
+          updatedConfig.circles.push({
+            id: data.circleId,
+            name: circleName || "My Circle",
+            ...CIRCLE_DEFAULTS,
+          });
+          existingIds.add(data.circleId);
+        }
+
+        // Add remaining circles (skip existing to preserve customizations)
         const allCircleNames = [circleName || "My Circle"];
-        const currentConfig = getConfig();
-        const existingIds = new Set(currentConfig.circles.map((c) => c.id));
         for (const c of allCircles) {
-          if (c.id === data.circleId) continue; // Already added above
+          if (c.id === data.circleId) continue;
           if (!existingIds.has(c.id)) {
-            addCircle({
-              id: c.id,
-              name: c.name,
-              tone: "casual",
-              filter: "everything",
-              repos: "*",
-            });
+            updatedConfig.circles.push({ id: c.id, name: c.name, ...CIRCLE_DEFAULTS });
           }
-          // Collect name for summary (whether new or existing)
           allCircleNames.push(c.name);
         }
+
+        saveConfig(updatedConfig);
 
         const configPath = getConfigPath();
         if (allCircleNames.length > 1) {

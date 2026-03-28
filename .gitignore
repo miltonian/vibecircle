@@ -12,6 +12,7 @@ build/
 # env
 .env
 .env*.local
+.envrc
 
 # vercel
 .vercel
