@@ -53,6 +53,7 @@ test-results/
 .claude/
 .agents/
 skills-lock.json
+
 # worktrees
 .worktrees/
 

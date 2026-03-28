@@ -106,22 +106,25 @@ async function main() {
         }
 
         // Add remaining circles (skip existing to preserve customizations)
-        const allCircleNames = [circleName || "My Circle"];
+        let newCount = existingIds.has(data.circleId) ? 0 : 1;
         for (const c of allCircles) {
           if (c.id === data.circleId) continue;
           if (!existingIds.has(c.id)) {
             updatedConfig.circles.push({ id: c.id, name: c.name, ...CIRCLE_DEFAULTS });
+            newCount++;
           }
-          allCircleNames.push(c.name);
         }
 
         saveConfig(updatedConfig);
 
         const configPath = getConfigPath();
-        if (allCircleNames.length > 1) {
-          process.stdout.write(`\n✓ Connected to ${allCircleNames.length} circles: ${allCircleNames.join(", ")}! Config saved to ${configPath}\n`);
+        const totalCircles = updatedConfig.circles.length;
+        const circleNames = updatedConfig.circles.map((c) => c.name).join(", ");
+        if (totalCircles > 1) {
+          const syncMsg = newCount > 0 ? ` (${newCount} new)` : "";
+          process.stdout.write(`\n✓ Synced ${totalCircles} circles${syncMsg}: ${circleNames}! Config saved to ${configPath}\n`);
         } else {
-          process.stdout.write(`\n✓ Connected to ${allCircleNames[0]}! Config saved to ${configPath}\n`);
+          process.stdout.write(`\n✓ Connected to ${updatedConfig.circles[0]?.name || "your circle"}! Config saved to ${configPath}\n`);
         }
         process.stdout.write(`circleName:${circleName}\n`);
         process.stdout.write(`circleId:${data.circleId}\n`);
