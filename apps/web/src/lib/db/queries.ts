@@ -1,6 +1,6 @@
 import { eq, and, desc, lt, sql, count } from "drizzle-orm"
 import { db } from "."
-import { circles, circleMembers, users, posts, reactions, comments, presence, apiTokens } from "./schema"
+import { circles, circleMembers, users, posts, reactions, comments, presence, apiTokens, arcs } from "./schema"
 import type { NewPost } from "./schema"
 
 /** Generate a short random alphanumeric invite code (8 chars) */
@@ -156,6 +156,76 @@ export async function getCircleByInviteCode(inviteCode: string) {
   return circle ?? null
 }
 
+// ── Arc Queries ─────────────────────────────────────────────────────────────
+
+/** Create an arc in a circle */
+export async function createArc(
+  circleId: string,
+  title: string,
+  createdBy: string,
+  epicRef?: { source: string; id: string; url: string } | null
+) {
+  const [arc] = await db
+    .insert(arcs)
+    .values({
+      circleId,
+      title,
+      createdBy,
+      epicRef: epicRef ?? null,
+    })
+    .returning()
+  return arc
+}
+
+/** Get a single arc by ID */
+export async function getArc(arcId: string) {
+  const [arc] = await db
+    .select()
+    .from(arcs)
+    .where(eq(arcs.id, arcId))
+    .limit(1)
+  return arc ?? null
+}
+
+/** Update an arc's status (active or shipped) */
+export async function updateArcStatus(
+  arcId: string,
+  status: "active" | "shipped"
+) {
+  const updates: Record<string, unknown> = { status }
+  if (status === "shipped") {
+    updates.shippedAt = new Date()
+  } else {
+    updates.shippedAt = null
+  }
+  const [arc] = await db
+    .update(arcs)
+    .set(updates)
+    .where(eq(arcs.id, arcId))
+    .returning()
+  return arc ?? null
+}
+
+/** Find an arc by its epic reference (source + id) within a circle */
+export async function findArcByEpicRef(
+  circleId: string,
+  epicSource: string,
+  epicId: string
+) {
+  const rows = await db
+    .select()
+    .from(arcs)
+    .where(
+      and(
+        eq(arcs.circleId, circleId),
+        sql`${arcs.epicRef}->>'source' = ${epicSource}`,
+        sql`${arcs.epicRef}->>'id' = ${epicId}`
+      )
+    )
+    .limit(1)
+  return rows[0] ?? null
+}
+
 // ── Post Queries ────────────────────────────────────────────────────────────
 
 /** Create a post in a circle */
@@ -215,7 +285,7 @@ export async function getFeed(
     }
   }
 
-  // Fetch posts with author info
+  // Fetch posts with author info and arc data
   const rows = await db
     .select({
       id: posts.id,
@@ -225,7 +295,9 @@ export async function getFeed(
       metadata: posts.metadata,
       headline: posts.headline,
       arcId: posts.arcId,
-      arcTitle: posts.arcTitle,
+      arcTitle: arcs.title,
+      arcStatus: arcs.status,
+      arcEpicRef: arcs.epicRef,
       arcSequence: posts.arcSequence,
       createdAt: posts.createdAt,
       authorId: posts.authorId,
@@ -235,6 +307,7 @@ export async function getFeed(
     })
     .from(posts)
     .innerJoin(users, eq(posts.authorId, users.id))
+    .leftJoin(arcs, eq(posts.arcId, arcs.id))
     .where(and(...conditions))
     .orderBy(desc(posts.createdAt))
     .limit(limit + 1) // Fetch one extra to determine if there's a next page
@@ -319,6 +392,8 @@ export async function getFeed(
     headline: row.headline,
     arcId: row.arcId,
     arcTitle: row.arcTitle,
+    arcStatus: row.arcStatus,
+    arcEpicRef: row.arcEpicRef,
     arcSequence: row.arcSequence,
     arcTotalPosts: row.arcId ? (arcCountMap.get(row.arcId) ?? 1) : null,
     createdAt: row.createdAt,
@@ -373,47 +448,109 @@ export async function getPost(postId: string) {
   }
 }
 
-/** Get active arcs for a circle — grouped by arcTitle with post count and latest timestamp */
+/** Get arcs for a circle with post counts, contributors, and epic progress */
 export async function getArcs(circleId: string) {
-  const rows = await db
+  const arcRows = await db
+    .select()
+    .from(arcs)
+    .where(eq(arcs.circleId, circleId))
+    .orderBy(desc(arcs.createdAt))
+
+  if (arcRows.length === 0) return []
+
+  const arcIds = arcRows.map((a) => a.id)
+
+  // Post counts and latest dates
+  const statRows = await db
     .select({
       arcId: posts.arcId,
-      arcTitle: posts.arcTitle,
+      postCount: count(),
+      latestAt: sql<Date>`max(${posts.createdAt})`,
+    })
+    .from(posts)
+    .where(sql`${posts.arcId} IN ${arcIds}`)
+    .groupBy(posts.arcId)
+
+  const statMap = new Map(statRows.map((r) => [r.arcId, r]))
+
+  // Distinct authors per arc
+  const authorRows = await db
+    .select({
+      arcId: posts.arcId,
       authorId: posts.authorId,
       authorName: users.name,
-      createdAt: posts.createdAt,
+      authorAvatarUrl: users.avatarUrl,
+      authorImage: users.image,
     })
     .from(posts)
     .innerJoin(users, eq(posts.authorId, users.id))
-    .where(and(eq(posts.circleId, circleId), sql`${posts.arcTitle} IS NOT NULL`))
-    .orderBy(desc(posts.createdAt))
+    .where(sql`${posts.arcId} IN ${arcIds}`)
+    .groupBy(posts.arcId, posts.authorId, users.name, users.avatarUrl, users.image)
 
-  // Group by arcTitle (some posts have arcTitle but no arcId)
-  const arcMap = new Map<string, { arcId: string | null; arcTitle: string; authorId: string; authorName: string | null; postCount: number; latestAt: Date | null }>()
-
-  for (const row of rows) {
-    if (!row.arcTitle) continue
-    const key = row.arcId || row.arcTitle // prefer arcId as key, fall back to title
-    const existing = arcMap.get(key)
-    if (existing) {
-      existing.postCount++
-    } else {
-      arcMap.set(key, {
-        arcId: row.arcId,
-        arcTitle: row.arcTitle,
-        authorId: row.authorId,
-        authorName: row.authorName,
-        postCount: 1,
-        latestAt: row.createdAt,
-      })
-    }
+  const authorMap = new Map<string, Array<{ id: string; name: string | null; avatarUrl: string | null }>>()
+  for (const row of authorRows) {
+    if (!row.arcId) continue
+    if (!authorMap.has(row.arcId)) authorMap.set(row.arcId, [])
+    authorMap.get(row.arcId)!.push({
+      id: row.authorId,
+      name: row.authorName,
+      avatarUrl: row.authorAvatarUrl ?? row.authorImage,
+    })
   }
 
-  return Array.from(arcMap.values())
+  // Latest epicProgress from most recent post per arc
+  const progressRows = await db
+    .select({
+      arcId: posts.arcId,
+      metadata: posts.metadata,
+    })
+    .from(posts)
+    .where(
+      and(
+        sql`${posts.arcId} IN ${arcIds}`,
+        sql`${posts.metadata}->>'epicProgress' IS NOT NULL`
+      )
+    )
+    .orderBy(desc(posts.createdAt))
+
+  const progressMap = new Map<string, { total: number; done: number; inProgress: number }>()
+  for (const row of progressRows) {
+    if (!row.arcId || progressMap.has(row.arcId)) continue
+    const meta = row.metadata as Record<string, unknown> | null
+    const ep = meta?.epicProgress as { total: number; done: number; inProgress: number } | undefined
+    if (ep) progressMap.set(row.arcId, ep)
+  }
+
+  return arcRows.map((arc) => {
+    const stats = statMap.get(arc.id)
+    return {
+      id: arc.id,
+      title: arc.title,
+      status: arc.status,
+      epicRef: arc.epicRef as { source: string; id: string; url: string } | null,
+      postCount: stats ? Number(stats.postCount) : 0,
+      latestAt: stats?.latestAt ?? arc.createdAt,
+      shippedAt: arc.shippedAt,
+      contributors: authorMap.get(arc.id) ?? [],
+      epicProgress: progressMap.get(arc.id) ?? null,
+    }
+  }).sort((a, b) => {
+    if (a.status !== b.status) return a.status === "active" ? -1 : 1
+    const aTime = a.latestAt ? new Date(a.latestAt).getTime() : 0
+    const bTime = b.latestAt ? new Date(b.latestAt).getTime() : 0
+    return bTime - aTime
+  })
 }
 
 /** Get all frames for a timelapse — posts in an arc ordered by sequence */
 export async function getTimelapseFrames(circleId: string, arcId: string) {
+  // Get arc title from arcs table
+  const [arc] = await db
+    .select({ title: arcs.title })
+    .from(arcs)
+    .where(eq(arcs.id, arcId))
+    .limit(1)
+
   const rows = await db
     .select({
       postId: posts.id,
@@ -422,7 +559,6 @@ export async function getTimelapseFrames(circleId: string, arcId: string) {
       type: posts.type,
       createdAt: posts.createdAt,
       arcSequence: posts.arcSequence,
-      arcTitle: posts.arcTitle,
       authorName: users.name,
       authorAvatarUrl: users.avatarUrl,
       authorImage: users.image,
@@ -440,7 +576,7 @@ export async function getTimelapseFrames(circleId: string, arcId: string) {
   if (rows.length === 0) return null
 
   return {
-    arcTitle: rows[0].arcTitle ?? "Untitled Arc",
+    arcTitle: arc?.title ?? "Untitled Arc",
     frames: rows.map((row) => ({
       postId: row.postId,
       headline: row.headline,
