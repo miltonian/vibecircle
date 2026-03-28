@@ -12,6 +12,7 @@ build/
 # env
 .env
 .env*.local
+.envrc
 
 # vercel
 .vercel
@@ -38,5 +39,20 @@ yarn-error.log*
 # superpowers
 .superpowers/
 
+# test coverage
+coverage/
+
+# playwright
+playwright-report/
+test-results/
+
+# typescript
+*.tsbuildinfo
+
+# claude code
+.claude/
+.agents/
+skills-lock.json
 # worktrees
 .worktrees/
+

@@ -8,21 +8,13 @@
 // 4. When authorized, write config to ~/.vibecircle/config.json
 // 5. Print success message
 
-const fs = require("fs");
-const path = require("path");
 const { execFileSync } = require("child_process");
-const { getConfig, saveConfig, addCircle, getConfigPath } = require("./lib/config");
+const { getConfig, saveConfig, getConfigPath } = require("./lib/config");
+const { get } = require("./lib/api-client");
 
-const API_URL = "https://vibecircle.dev";
+const API_URL = getConfig().apiUrl || "https://vibecircle.dev";
 
-/** Get the config directory */
-function getDataDir() {
-  if (process.env.CLAUDE_PLUGIN_DATA) {
-    return process.env.CLAUDE_PLUGIN_DATA;
-  }
-  const home = process.env.HOME || process.env.USERPROFILE || "";
-  return path.join(home, ".vibecircle");
-}
+const CIRCLE_DEFAULTS = { tone: "casual", filter: "everything", repos: "*" };
 
 /** Sleep for ms milliseconds */
 function sleep(ms) {
@@ -86,41 +78,51 @@ async function main() {
       const data = await res.json();
 
       if (data.status === "authorized") {
-        // Step 4: Write config
-        // Update shared auth fields
+        // Save auth credentials (single read-mutate-write)
         const config = getConfig();
         config.apiUrl = data.apiUrl;
         config.authToken = data.token;
         saveConfig(config);
 
-        // Fetch circle name from API
-        let circleName = "";
-        try {
-          const circleRes = await fetch(`${API_URL}/api/circles/invite-lookup?code=_&circleId=${data.circleId}`);
-          if (!circleRes.ok) {
-            // Try fetching via the circles list
-            const listRes = await fetch(`${API_URL}/api/circles`, {
-              headers: { Authorization: `Bearer ${data.token}` },
-            });
-            if (listRes.ok) {
-              const circles = await listRes.json();
-              const match = circles.find((c) => c.id === data.circleId);
-              if (match) circleName = match.name;
-            }
-          }
-        } catch {}
+        // Fetch all user circles (uses saved token via api-client)
+        const allCircles = await get("/api/circles") || [];
 
-        // Add circle with auto-detected name and sensible defaults
-        addCircle({
-          id: data.circleId,
-          name: circleName || "My Circle",
-          tone: "casual",
-          filter: "everything",
-          repos: "*",
-        });
+        // Find the name of the explicitly-selected circle
+        const selectedCircle = allCircles.find((c) => c.id === data.circleId);
+        const circleName = selectedCircle?.name || "";
+
+        // Batch circle sync — single read, in-memory mutations, single write
+        const updatedConfig = getConfig();
+        const existingIds = new Set(updatedConfig.circles.map((c) => c.id));
+
+        // Add the explicitly-selected circle first
+        if (!existingIds.has(data.circleId)) {
+          updatedConfig.circles.push({
+            id: data.circleId,
+            name: circleName || "My Circle",
+            ...CIRCLE_DEFAULTS,
+          });
+          existingIds.add(data.circleId);
+        }
+
+        // Add remaining circles (skip existing to preserve customizations)
+        const allCircleNames = [circleName || "My Circle"];
+        for (const c of allCircles) {
+          if (c.id === data.circleId) continue;
+          if (!existingIds.has(c.id)) {
+            updatedConfig.circles.push({ id: c.id, name: c.name, ...CIRCLE_DEFAULTS });
+          }
+          allCircleNames.push(c.name);
+        }
+
+        saveConfig(updatedConfig);
 
         const configPath = getConfigPath();
-        process.stdout.write(`\n✓ Connected to ${circleName || "your circle"}! Config saved to ${configPath}\n`);
+        if (allCircleNames.length > 1) {
+          process.stdout.write(`\n✓ Connected to ${allCircleNames.length} circles: ${allCircleNames.join(", ")}! Config saved to ${configPath}\n`);
+        } else {
+          process.stdout.write(`\n✓ Connected to ${allCircleNames[0]}! Config saved to ${configPath}\n`);
+        }
         process.stdout.write(`circleName:${circleName}\n`);
         process.stdout.write(`circleId:${data.circleId}\n`);
         process.exit(0);

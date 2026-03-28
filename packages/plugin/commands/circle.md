@@ -35,20 +35,22 @@ If not configured:
 
 a. Say: "Opening your browser to authorize..."
 b. Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/device-auth.js`
-c. That's it. The script handles everything — auth, circle name detection, config with defaults (casual tone, all repos, everything filter).
-d. After it completes, say: "You're all set! The plugin will suggest sharing as you build. Use `/share` anytime to share manually."
+c. That's it. The script handles everything — auth, circle name detection, config with defaults (casual tone, all repos, everything filter). It also syncs all circles you belong to automatically.
+d. After it completes, say: "You're all set! Connected to all your circles. The plugin will suggest sharing as you build. Use `/share` anytime to share manually."
 
 **Do NOT ask any questions.** No name, no tone, no repos, no filter. Defaults are fine. Users can customize later with `/circle config`.
 
-After setup, suggest: "Tip: You can add more circles for different audiences — like a team circle with technical tone, or an execs circle that only shows milestones. Try `/circle add` when you're ready."
+After setup, suggest: "Tip: Each circle can have its own tone and filter — try `/circle config <name>` to set a technical tone for your eng team or milestones-only for execs."
 
-## 3. Add another circle
+## 3. Re-sync circles
 
-a. Say: "Opening your browser to authorize a new circle..."
+Use this when you've joined new circles on the web and want the plugin to pick them up.
+
+a. Say: "Re-syncing your circles..."
 b. Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/device-auth.js`
-c. After it completes, say: "Added! Want to customize this circle's settings? You can set the tone (casual/technical/non-technical/business-impact), filter (everything/features-only/milestones-only), and which repos post here. Run `/circle config <name>` to adjust."
+c. After it completes, say: "Synced! Your existing circle settings (tone, filter, repos) are preserved. Any new circles were added with defaults — use `/circle config <name>` to customize."
 
-**Do NOT ask questions during add either.** Defaults are applied. Users customize after if they want.
+**Do NOT ask questions during sync.** Defaults are applied to new circles. Existing circle customizations are preserved.
 
 ## 4. List circles
 
