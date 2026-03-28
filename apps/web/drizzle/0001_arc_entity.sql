@@ -10,17 +10,17 @@ CREATE TABLE IF NOT EXISTS "arcs" (
   "shipped_at" timestamp
 );
 
--- Migrate existing arc data: create arc rows from distinct (circleId, arcTitle) pairs
+-- Migrate existing arc data: one arc per distinct (circleId, arcTitle), using the earliest post's author
 INSERT INTO "arcs" ("id", "circle_id", "title", "created_by", "created_at")
 SELECT DISTINCT ON (p."circle_id", p."arc_title")
   gen_random_uuid(),
   p."circle_id",
   p."arc_title",
   p."author_id",
-  MIN(p."created_at")
+  p."created_at"
 FROM "posts" p
 WHERE p."arc_title" IS NOT NULL
-GROUP BY p."circle_id", p."arc_title", p."author_id";
+ORDER BY p."circle_id", p."arc_title", p."created_at" ASC;
 
 -- Update posts to reference the new arcs table
 -- First, add a temporary column for the new UUID arc reference
