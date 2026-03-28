@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
-import { auth } from "@/lib/auth"
 import { getFeed } from "@/lib/db/queries"
+import { getAuthUserId } from "@/lib/api-auth"
 import { db } from "@/lib/db"
 import { circleMembers } from "@/lib/db/schema"
 import { eq, and } from "drizzle-orm"
@@ -10,8 +10,8 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await auth()
-  if (!session?.user?.id) {
+  const userId = await getAuthUserId(request)
+  if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
@@ -24,7 +24,7 @@ export async function GET(
     .where(
       and(
         eq(circleMembers.circleId, circleId),
-        eq(circleMembers.userId, session.user.id)
+        eq(circleMembers.userId, userId)
       )
     )
     .limit(1)
