@@ -75,7 +75,7 @@ This looks like a good moment to share with the user's circles: ${circleInfo}.
 - epic/project progress (total tickets, done, in-progress)
 
 **Then draft and share:**
-1. Based on what was just built, draft a post for each matching circle. Write a headline (one line, plain English) and a body (2-3 sentences, markdown). Adapt tone per circle.
+1. Based on what was just built, draft a post for each matching circle. Write a headline (one line, plain English) and a body (2-3 sentences, markdown). Adapt tone per circle. For updates with structure worth showing (a ship, metrics, a "how it works"), follow the vibecircle-post-style skill to compose rich blocks and post with --blocks instead of --body.
 2. Try to capture a screenshot if UI work was done.
 3. Show the user a numbered preview with full content. Ask: Post: [all] · [1,2] · [skip] · [edit N]
 4. If they approve, post each via: node ${process.env.CLAUDE_PLUGIN_ROOT || "PLUGIN_ROOT"}/scripts/post-to-circle.js --circle-id <id> --type <shipped|wip> --headline "<headline>" --body "<body>" --arc-id "<arcId>" --arc-title "<arcTitle>" --arc-sequence <n>

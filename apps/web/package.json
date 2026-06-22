@@ -10,6 +10,7 @@
     "verify": "bun run scripts/verify/smoke.ts",
     "verify:hooks": "bun run scripts/verify/hooks.ts",
     "verify:authz": "bun run scripts/verify/authz.ts",
+    "verify:blocks": "bun run scripts/verify/blocks.ts",
     "verify:inspect": "bun run scripts/verify/inspect.ts"
   },
   "dependencies": {

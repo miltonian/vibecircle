@@ -1,14 +1,18 @@
 "use client"
 
 import ReactMarkdown from "react-markdown"
+import { PostBlocks } from "./post-blocks"
+import type { PostBlock } from "@/lib/post-blocks"
 
 interface PostBodyProps {
   headline: string | null
   body: string | null
+  blocks?: PostBlock[] | null
 }
 
-export function PostBody({ headline, body }: PostBodyProps) {
-  if (!headline && !body) return null
+export function PostBody({ headline, body, blocks }: PostBodyProps) {
+  const hasBlocks = Array.isArray(blocks) && blocks.length > 0
+  if (!headline && !body && !hasBlocks) return null
 
   return (
     <div className="mt-3">
@@ -17,7 +21,13 @@ export function PostBody({ headline, body }: PostBodyProps) {
           {headline}
         </h3>
       )}
-      {body && (
+      {/* Rich blocks take precedence; otherwise fall back to the markdown body. */}
+      {hasBlocks ? (
+        <div className={headline ? "mt-1.5" : ""}>
+          <PostBlocks blocks={blocks!} />
+        </div>
+      ) : (
+        body && (
         <div className={`${headline ? "mt-1.5" : ""} prose-vibecircle text-[14px] leading-relaxed text-text-secondary`}>
           <ReactMarkdown
             components={{
@@ -61,6 +71,7 @@ export function PostBody({ headline, body }: PostBodyProps) {
             {body}
           </ReactMarkdown>
         </div>
+        )
       )}
     </div>
   )
