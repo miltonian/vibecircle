@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
-import { generateInvite } from "@/lib/db/queries"
+import { generateInvite, isCircleMember } from "@/lib/db/queries"
 
 /** POST /api/circles/[id]/invite — generate a new invite code */
 export async function POST(
@@ -13,6 +13,14 @@ export async function POST(
   }
 
   const { id: circleId } = await params
+
+  // Only members may rotate a circle's invite code.
+  if (!(await isCircleMember(circleId, session.user.id))) {
+    return NextResponse.json(
+      { error: "You are not a member of this circle" },
+      { status: 403 }
+    )
+  }
 
   const inviteCode = await generateInvite(circleId)
 

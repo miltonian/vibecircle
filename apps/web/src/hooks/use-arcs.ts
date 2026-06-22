@@ -1,6 +1,14 @@
 import useSWR from "swr"
 
-const fetcher = (url: string) => fetch(url).then((r) => r.json())
+// Throw on non-2xx so SWR surfaces an error and `data` stays undefined, instead
+// of resolving to an error body (e.g. {error:"…"} for a deleted circle) that
+// downstream `.filter`/`.map` calls would choke on.
+const fetcher = async (url: string) => {
+  const r = await fetch(url)
+  if (!r.ok) throw new Error(`Arcs fetch failed: ${r.status}`)
+  const data = await r.json()
+  return Array.isArray(data) ? data : []
+}
 
 export interface ArcContributor {
   id: string

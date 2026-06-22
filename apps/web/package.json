@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "verify": "bun run scripts/verify/smoke.ts",
+    "verify:hooks": "bun run scripts/verify/hooks.ts",
+    "verify:authz": "bun run scripts/verify/authz.ts",
+    "verify:inspect": "bun run scripts/verify/inspect.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.63",

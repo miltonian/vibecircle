@@ -2,14 +2,24 @@ import { streamText } from "ai"
 import { createOpenAI } from "@ai-sdk/openai"
 import { createAnthropic } from "@ai-sdk/anthropic"
 
-/** Parse a GitHub URL into owner/repo. Supports various formats. */
+/** Hosts we will resolve a repo from. Exact match only — `includes("github.com")`
+ *  would accept `github.com.evil.com`. */
+const ALLOWED_GITHUB_HOSTS = new Set(["github.com", "www.github.com"])
+
+/** Owner/repo must be simple path segments — no traversal or query smuggling. */
+const SEGMENT_RE = /^[A-Za-z0-9._-]+$/
+
+/** Parse a GitHub URL into owner/repo. Returns null for anything unsafe. */
 function parseGitHubUrl(url: string): { owner: string; repo: string } | null {
   try {
     const parsed = new URL(url)
-    if (!parsed.hostname.includes("github.com")) return null
+    if (parsed.protocol !== "https:") return null
+    if (!ALLOWED_GITHUB_HOSTS.has(parsed.hostname.toLowerCase())) return null
     const parts = parsed.pathname.replace(/^\//, "").replace(/\.git$/, "").split("/")
     if (parts.length < 2) return null
-    return { owner: parts[0], repo: parts[1] }
+    const [owner, repo] = parts
+    if (!SEGMENT_RE.test(owner) || !SEGMENT_RE.test(repo)) return null
+    return { owner, repo }
   } catch {
     return null
   }

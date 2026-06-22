@@ -25,6 +25,11 @@ function isPublicPath(pathname: string): boolean {
   if (pathname === "/api/upload") {
     return true
   }
+  // Collection endpoint only (exact match, not the /api/circles/* subtree) —
+  // the handler does its own Bearer-token-or-session auth via getAuthUserId.
+  if (pathname === "/api/circles") {
+    return true
+  }
   if (pathname === "/api/circles/invite-lookup") {
     return true
   }

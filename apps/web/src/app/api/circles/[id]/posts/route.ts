@@ -45,10 +45,18 @@ export async function POST(
     )
   }
 
-  // Auto-reopen shipped arcs when a new post is added
+  // An arcId in the body must belong to THIS circle — otherwise a member of one
+  // circle could attach posts to, or reopen the shipped arcs of, another circle.
   if (body.arcId) {
     const arc = await getArc(body.arcId)
-    if (arc && arc.status === "shipped") {
+    if (!arc || arc.circleId !== circleId) {
+      return NextResponse.json(
+        { error: "Arc does not belong to this circle" },
+        { status: 400 }
+      )
+    }
+    // Auto-reopen shipped arcs when a new post is added.
+    if (arc.status === "shipped") {
       await updateArcStatus(body.arcId, "active")
     }
   }

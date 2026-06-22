@@ -20,6 +20,23 @@ interface PostCardProps {
   circleId?: string
 }
 
+/** "Try it live" link for posts that carry a deploy URL but aren't rendered as
+ *  a hero (image) card or a live embed — otherwise the deploy URL is invisible. */
+function DeployLink({ post }: { post: FeedPost }) {
+  const url = post.metadata?.deploy_url
+  if (!url || post.type === "live") return null
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="mt-2 inline-flex items-center gap-1 rounded-lg bg-accent-green/10 px-3 py-1.5 text-[11px] font-semibold text-accent-green transition-colors hover:bg-accent-green/20"
+    >
+      Try it live ↗
+    </a>
+  )
+}
+
 function getCardVariant(post: FeedPost): "hero" | "standard" | "compact" {
   const hasImages = (post.media ?? []).some((m) => m.type === "image")
   if (post.type === "shipped" && hasImages) return "hero"
@@ -39,7 +56,9 @@ export function PostCard({ post, index, userId, circleId }: PostCardProps) {
   ).map(([emoji, count]) => ({
     emoji,
     count,
-    userIds: [],
+    // Seed the viewer's own reactions so they render highlighted immediately.
+    userIds:
+      userId && post.viewerReactions?.includes(emoji) ? [userId] : [],
   }))
 
   const timelapseHandler =
@@ -82,6 +101,8 @@ export function PostCard({ post, index, userId, circleId }: PostCardProps) {
           ) : images.length > 0 ? (
             <ImageCarousel images={images} />
           ) : null}
+
+          <DeployLink post={post} />
 
           {/* Arc indicator */}
           {post.arcTitle && (
@@ -211,6 +232,8 @@ export function PostCard({ post, index, userId, circleId }: PostCardProps) {
 
         {video && <VideoPreview video={video} />}
         {post.type === "live" && post.metadata?.deploy_url && <LiveEmbed url={post.metadata.deploy_url} />}
+
+        <DeployLink post={post} />
 
         {post.arcTitle && (
           <ArcIndicator

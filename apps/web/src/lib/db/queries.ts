@@ -134,6 +134,34 @@ export async function getCircleMembers(circleId: string) {
   }))
 }
 
+/** True if the user is a member of the circle. Used for authorization checks. */
+export async function isCircleMember(
+  circleId: string,
+  userId: string
+): Promise<boolean> {
+  const [row] = await db
+    .select({ userId: circleMembers.userId })
+    .from(circleMembers)
+    .where(
+      and(
+        eq(circleMembers.circleId, circleId),
+        eq(circleMembers.userId, userId)
+      )
+    )
+    .limit(1)
+  return Boolean(row)
+}
+
+/** The circle a post belongs to, or null if the post does not exist. */
+export async function getPostCircleId(postId: string): Promise<string | null> {
+  const [row] = await db
+    .select({ circleId: posts.circleId })
+    .from(posts)
+    .where(eq(posts.id, postId))
+    .limit(1)
+  return row?.circleId ?? null
+}
+
 /** Get a single circle by ID */
 export async function getCircleById(circleId: string) {
   const [circle] = await db
@@ -265,7 +293,7 @@ export async function createPost(
 /** Get a paginated feed of posts for a circle, newest first */
 export async function getFeed(
   circleId: string,
-  opts: { cursor?: string; limit?: number } = {}
+  opts: { cursor?: string; limit?: number; viewerId?: string } = {}
 ) {
   const limit = opts.limit ?? 20
 
@@ -382,6 +410,25 @@ export async function getFeed(
     commentMap.set(c.postId, Number(c.count))
   }
 
+  // Which emojis the requesting user reacted with, per post — so the client can
+  // highlight the viewer's own reactions (the feed otherwise has no user IDs).
+  const viewerReactionMap = new Map<string, string[]>()
+  if (opts.viewerId) {
+    const viewerRows = await db
+      .select({ postId: reactions.postId, emoji: reactions.emoji })
+      .from(reactions)
+      .where(
+        and(
+          sql`${reactions.postId} IN ${postIds}`,
+          eq(reactions.userId, opts.viewerId)
+        )
+      )
+    for (const r of viewerRows) {
+      if (!viewerReactionMap.has(r.postId)) viewerReactionMap.set(r.postId, [])
+      viewerReactionMap.get(r.postId)!.push(r.emoji)
+    }
+  }
+
   // Assemble final post objects
   const enrichedPosts = feedRows.map((row) => ({
     id: row.id,
@@ -403,6 +450,7 @@ export async function getFeed(
       avatarUrl: row.authorAvatarUrl ?? row.authorImage,
     },
     reactionCounts: reactionMap.get(row.id) ?? {},
+    viewerReactions: viewerReactionMap.get(row.id) ?? [],
     commentCount: commentMap.get(row.id) ?? 0,
   }))
 
@@ -555,6 +603,7 @@ export async function getTimelapseFrames(circleId: string, arcId: string) {
     .select({
       postId: posts.id,
       headline: posts.headline,
+      body: posts.body,
       media: posts.media,
       type: posts.type,
       createdAt: posts.createdAt,
@@ -580,6 +629,7 @@ export async function getTimelapseFrames(circleId: string, arcId: string) {
     frames: rows.map((row) => ({
       postId: row.postId,
       headline: row.headline,
+      body: row.body,
       media: row.media,
       type: row.type,
       createdAt: row.createdAt,

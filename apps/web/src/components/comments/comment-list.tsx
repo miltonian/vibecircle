@@ -26,13 +26,17 @@ interface CommentListProps {
 }
 
 export function CommentList({ postId, initialCommentCount = 0 }: CommentListProps) {
+  const [expanded, setExpanded] = useState(false)
+
+  // Only fetch (and poll) comments for posts that actually have them, or once
+  // the user expands/interacts. Posts with zero comments would otherwise each
+  // fire a request every 5s — an N+1 across the whole feed.
+  const shouldFetch = initialCommentCount > 0 || expanded
   const { data, mutate } = useSWR<{ comments: CommentData[] }>(
-    `/api/posts/${postId}/comments`,
+    shouldFetch ? `/api/posts/${postId}/comments` : null,
     fetcher,
     { refreshInterval: 5000 }
   )
-
-  const [expanded, setExpanded] = useState(false)
 
   const comments = data?.comments ?? []
   const visibleLimit = 3
@@ -49,12 +53,11 @@ export function CommentList({ postId, initialCommentCount = 0 }: CommentListProp
         },
         { revalidate: false }
       )
-      // Auto-expand when a new comment is added and we're collapsed
-      if (!expanded && comments.length >= visibleLimit) {
-        setExpanded(true)
-      }
+      // Ensure the comment thread is fetching/visible after adding one — this
+      // also turns on the SWR key for posts that previously had zero comments.
+      setExpanded(true)
     },
-    [mutate, expanded, comments.length]
+    [mutate]
   )
 
   return (

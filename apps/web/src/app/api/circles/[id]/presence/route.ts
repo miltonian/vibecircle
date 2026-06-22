@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { getAuthUserId } from "@/lib/api-auth"
-import { getCirclePresence, getRecentActivity } from "@/lib/db/queries"
+import { getCirclePresence, getRecentActivity, isCircleMember } from "@/lib/db/queries"
 
 /** GET /api/circles/[id]/presence — get presence for all circle members */
 export async function GET(
@@ -13,6 +13,14 @@ export async function GET(
   }
 
   const { id: circleId } = await params
+
+  // Presence + recent activity (post headlines) are members-only.
+  if (!(await isCircleMember(circleId, userId))) {
+    return NextResponse.json(
+      { error: "You are not a member of this circle" },
+      { status: 403 }
+    )
+  }
 
   const [members, activity] = await Promise.all([
     getCirclePresence(circleId),
