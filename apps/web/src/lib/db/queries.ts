@@ -265,6 +265,7 @@ export async function createPost(
     body?: string | null
     media?: unknown[] | null
     metadata?: Record<string, unknown> | null
+    blocks?: unknown[] | null
     headline?: string | null
     arcId?: string | null
     arcTitle?: string | null
@@ -280,6 +281,7 @@ export async function createPost(
       body: data.body ?? null,
       media: data.media ?? null,
       metadata: data.metadata ?? null,
+      blocks: data.blocks ?? null,
       headline: data.headline ?? null,
       arcId: data.arcId ?? null,
       arcTitle: data.arcTitle ?? null,
@@ -321,6 +323,7 @@ export async function getFeed(
       body: posts.body,
       media: posts.media,
       metadata: posts.metadata,
+      blocks: posts.blocks,
       headline: posts.headline,
       arcId: posts.arcId,
       arcTitle: arcs.title,
@@ -436,6 +439,7 @@ export async function getFeed(
     body: row.body,
     media: row.media,
     metadata: row.metadata,
+    blocks: row.blocks,
     headline: row.headline,
     arcId: row.arcId,
     arcTitle: row.arcTitle,

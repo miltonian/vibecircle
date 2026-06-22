@@ -1,4 +1,5 @@
 import useSWR from "swr"
+import type { PostBlock } from "@/lib/post-blocks"
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
@@ -47,6 +48,7 @@ export interface FeedPost {
   arcTotalPosts: number | null
   media: PostMedia[] | null
   metadata: PostMetadata | null
+  blocks: PostBlock[] | null
   createdAt: string
   author: PostAuthor
   reactionCounts: Record<string, number>

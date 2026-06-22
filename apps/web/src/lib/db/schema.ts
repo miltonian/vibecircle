@@ -132,6 +132,7 @@ export const posts = pgTable("posts", {
   body: text("body"),
   media: jsonb("media"), // array of {type, url, caption}
   metadata: jsonb("metadata"),
+  blocks: jsonb("blocks"), // optional rich "block kit" content (see lib/post-blocks.ts)
   headline: text("headline"), // AI-written one-liner anyone understands
   arcId: uuid("arc_id").references(() => arcs.id), // FK to arcs table
   arcTitle: text("arc_title"), // Human-readable arc name ("Payment Integration")

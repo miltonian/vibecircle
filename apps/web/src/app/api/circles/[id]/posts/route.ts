@@ -4,6 +4,7 @@ import { db } from "@/lib/db"
 import { circleMembers } from "@/lib/db/schema"
 import { eq, and } from "drizzle-orm"
 import { getAuthUserId } from "@/lib/api-auth"
+import { validateBlocks, BlockValidationError, type PostBlock } from "@/lib/post-blocks"
 
 const VALID_TYPES = ["shipped", "wip", "video", "live", "ambient"] as const
 
@@ -45,6 +46,20 @@ export async function POST(
     )
   }
 
+  // Validate optional rich blocks. Reject the whole post if they're malformed —
+  // only in-spec blocks ever reach the database.
+  let blocks: PostBlock[] | null = null
+  if (body.blocks != null) {
+    try {
+      blocks = validateBlocks(body.blocks)
+    } catch (err) {
+      if (err instanceof BlockValidationError) {
+        return NextResponse.json({ error: `Invalid blocks: ${err.message}` }, { status: 400 })
+      }
+      throw err
+    }
+  }
+
   // An arcId in the body must belong to THIS circle — otherwise a member of one
   // circle could attach posts to, or reopen the shipped arcs of, another circle.
   if (body.arcId) {
@@ -66,6 +81,7 @@ export async function POST(
     body: body.body ?? null,
     media: body.media ?? null,
     metadata: body.metadata ?? null,
+    blocks,
     headline: body.headline ?? null,
     arcId: body.arcId ?? null,
     arcTitle: body.arcTitle ?? null,

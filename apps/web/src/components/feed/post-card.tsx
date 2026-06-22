@@ -91,7 +91,7 @@ export function PostCard({ post, index, userId, circleId }: PostCardProps) {
             <span className="ml-auto text-[10px] text-text-dim">{timeAgo(post.createdAt)}</span>
           </div>
 
-          <PostBody headline={post.headline} body={post.body} />
+          <PostBody headline={post.headline} body={post.body} blocks={post.blocks} />
 
           {/* Media — compact cards still show images/video/embeds */}
           {post.type === "live" && post.metadata?.deploy_url ? (
@@ -171,7 +171,7 @@ export function PostCard({ post, index, userId, circleId }: PostCardProps) {
 
           <div className="p-[18px]">
             <PostHeader post={post} />
-            <PostBody headline={post.headline} body={post.body} />
+            <PostBody headline={post.headline} body={post.body} blocks={post.blocks} />
           </div>
 
           {post.arcTitle && (
@@ -221,7 +221,7 @@ export function PostCard({ post, index, userId, circleId }: PostCardProps) {
         <div className={images.length > 0 ? "flex gap-4" : ""}>
           <div className="flex-1 min-w-0">
             <PostHeader post={post} />
-            <PostBody headline={post.headline} body={post.body} />
+            <PostBody headline={post.headline} body={post.body} blocks={post.blocks} />
           </div>
           {images.length > 0 && (
             <div className="mt-2 w-[140px] h-[100px] shrink-0 overflow-hidden rounded-xl">

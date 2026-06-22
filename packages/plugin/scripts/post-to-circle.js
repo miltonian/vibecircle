@@ -14,6 +14,7 @@ const { post, uploadFile } = require("./lib/api-client");
 /** Parse command-line arguments */
 function parseArgs(argv) {
   const args = { type: "wip", body: "", screenshot: "", headline: "", arcId: "", arcTitle: "", arcSequence: "", circleId: "",
+    blocksPath: "",
     ticketSource: "", ticketId: "", ticketTitle: "", ticketUrl: "", ticketStatus: "",
     epicTotal: "", epicDone: "", epicInProgress: "" };
   for (let i = 2; i < argv.length; i++) {
@@ -33,6 +34,8 @@ function parseArgs(argv) {
       args.arcSequence = argv[++i];
     } else if (argv[i] === "--circle-id" && argv[i + 1]) {
       args.circleId = argv[++i];
+    } else if (argv[i] === "--blocks" && argv[i + 1]) {
+      args.blocksPath = argv[++i];
     } else if (argv[i] === "--ticket-source" && argv[i + 1]) {
       args.ticketSource = argv[++i];
     } else if (argv[i] === "--ticket-id" && argv[i + 1]) {
@@ -145,12 +148,26 @@ async function main() {
     }
   }
 
+  // Read optional rich blocks from a JSON file (avoids shell-escaping JSON).
+  // The file may be either a bare array or { "blocks": [...] }.
+  let blocks = null;
+  if (args.blocksPath) {
+    try {
+      const raw = require("fs").readFileSync(args.blocksPath, "utf-8");
+      const parsed = JSON.parse(raw);
+      blocks = Array.isArray(parsed) ? parsed : parsed.blocks ?? null;
+    } catch (err) {
+      process.stderr.write(`[vibecircle] could not read --blocks file: ${err.message}\n`);
+    }
+  }
+
   // Build the post payload
   const payload = {
     type: args.type,
     body: args.body || null,
     media: media.length > 0 ? media : null,
     metadata: metadata,
+    blocks: blocks,
     headline: args.headline || null,
     arcId: args.arcId || null,
     arcTitle: args.arcTitle || null,
