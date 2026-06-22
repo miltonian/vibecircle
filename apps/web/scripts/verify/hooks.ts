@@ -117,12 +117,15 @@ async function main() {
     )
     check("SessionStart → presence 'building'", r1.ok, r1.detail)
 
-    // ── 2. Stop → sentinel emits approve payload (deterministic, local) ────────
+    // ── 2. Stop → sentinel emits a PASSIVE nudge (deterministic, local) ────────
+    // It must surface a /share hint but NEVER block the stop (no `decision`),
+    // otherwise it hijacks the turn and Claude keeps going instead of stopping.
     const sentinel = run("node", [join(PLUGIN, "detect-activity.js")], { cwd: repoDir, env })
-    let decision: any = null
-    try { decision = JSON.parse(sentinel.out) } catch {}
-    const sentinelOk = decision?.decision === "approve" && /auto-share/.test(decision?.systemMessage ?? "")
-    check("Stop → sentinel fires 'approve' on uncommitted work", sentinelOk, ((sentinel.out || sentinel.err) || "(no output)").slice(0, 90))
+    let parsed: any = null
+    try { parsed = JSON.parse(sentinel.out) } catch {}
+    const nonBlocking = !parsed?.decision
+    const nudges = /\/share/.test(parsed?.systemMessage ?? "")
+    check("Stop → sentinel nudges /share without blocking", nonBlocking && nudges, ((sentinel.out || sentinel.err) || "(no output)").slice(0, 90))
 
     // ── 3. post-to-circle.js actually writes a post via the API ────────────────
     const headline = `Hook verify ${Date.now()}`
