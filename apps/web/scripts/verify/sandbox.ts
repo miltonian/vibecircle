@@ -56,6 +56,19 @@ async function setup(email: string) {
       values (${p.id}, ${circleId}, ${owner}, ${p.type}, ${p.body}, ${(p as any).headline ?? null},
               ${(p as any).metadata ?? null}, ${(p as any).arcId ?? null}, ${(p as any).arcTitle ?? null}, ${(p as any).arcSequence ?? null})`
   }
+  // a rich "block kit" post, so the sandbox showcases blocks rendering alongside
+  // the markdown posts above (backward-compat in one view).
+  const blockPostId = randomUUID()
+  const blocks = [
+    { type: "callout", tone: "success", text: "Shipped dark mode 🌙" },
+    { type: "text", text: "Reworked the **theming** layer to use CSS variables." },
+    { type: "metrics", items: [{ label: "files", value: "12" }, { label: "commits", value: "5" }] },
+    { type: "steps", items: ["Add design tokens", "Swap hardcoded colors", "Ship it"] },
+    { type: "deploy", url: "https://example.com", label: "See it live" },
+  ]
+  await sql`insert into posts (id, circle_id, author_id, type, headline, blocks)
+    values (${blockPostId}, ${circleId}, ${owner}, 'shipped', 'Rich block post', ${JSON.stringify(blocks)}::jsonb)`
+
   // one comment + one reaction on the first post so comment/reaction rendering has data
   await sql`insert into comments (post_id, author_id, body) values (${posts[0].id}, ${owner}, 'Sandbox seed comment')`
   await sql`insert into reactions (post_id, user_id, emoji) values (${posts[0].id}, ${owner}, '🔥')`
