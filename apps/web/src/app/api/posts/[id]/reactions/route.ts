@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
-import { toggleReaction, getReactions } from "@/lib/db/queries"
+import { toggleReaction, getReactions, getPostCircleId, isCircleMember } from "@/lib/db/queries"
 
 /** POST /api/posts/[id]/reactions — toggle a reaction on a post */
 export async function POST(
@@ -13,6 +13,19 @@ export async function POST(
   }
 
   const { id: postId } = await params
+
+  // Only members of the post's circle may react.
+  const circleId = await getPostCircleId(postId)
+  if (!circleId) {
+    return NextResponse.json({ error: "Post not found" }, { status: 404 })
+  }
+  if (!(await isCircleMember(circleId, session.user.id))) {
+    return NextResponse.json(
+      { error: "You are not a member of this circle" },
+      { status: 403 }
+    )
+  }
+
   const body = await request.json()
 
   if (!body.emoji || typeof body.emoji !== "string") {

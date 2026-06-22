@@ -42,7 +42,7 @@ export async function GET(
   const limitParam = url.searchParams.get("limit")
   const limit = limitParam ? Math.min(Math.max(parseInt(limitParam, 10), 1), 50) : 20
 
-  const feed = await getFeed(circleId, { cursor, limit })
+  const feed = await getFeed(circleId, { cursor, limit, viewerId: userId })
 
   return NextResponse.json(feed)
 }

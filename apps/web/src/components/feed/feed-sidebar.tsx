@@ -4,7 +4,13 @@ import useSWR from "swr"
 import { usePresence } from "@/hooks/use-presence"
 import { useArcs } from "@/hooks/use-arcs"
 
-const fetcher = (url: string) => fetch(url).then((r) => r.json())
+// Throw on non-2xx (e.g. 403 when not a member) so `data` stays undefined and
+// the `(members ?? []).map` below never sees a non-array error body.
+const fetcher = async (url: string) => {
+  const r = await fetch(url)
+  if (!r.ok) throw new Error(`Fetch failed: ${r.status}`)
+  return r.json()
+}
 
 interface Member {
   userId: string

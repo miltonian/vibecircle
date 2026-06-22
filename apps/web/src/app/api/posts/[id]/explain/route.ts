@@ -4,7 +4,7 @@ import { db } from "@/lib/db"
 import { users, posts } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
 import { explainProject } from "@/lib/ai"
-import { addComment } from "@/lib/db/queries"
+import { addComment, isCircleMember } from "@/lib/db/queries"
 
 /** POST /api/posts/[id]/explain — AI-analyze the post's repo and stream the explanation */
 export async function POST(
@@ -18,7 +18,30 @@ export async function POST(
 
   const { id: postId } = await params
 
-  // Get user's API key
+  // Fetch the post and authorize FIRST (before revealing anything about API keys).
+  const [post] = await db
+    .select({
+      id: posts.id,
+      circleId: posts.circleId,
+      metadata: posts.metadata,
+    })
+    .from(posts)
+    .where(eq(posts.id, postId))
+    .limit(1)
+
+  if (!post) {
+    return NextResponse.json({ error: "Post not found" }, { status: 404 })
+  }
+
+  // Only members of the post's circle may run AI Explain on it.
+  if (!(await isCircleMember(post.circleId, session.user.id))) {
+    return NextResponse.json(
+      { error: "You are not a member of this circle" },
+      { status: 403 }
+    )
+  }
+
+  // Get the caller's API key (AI Explain uses the caller's own key).
   const [user] = await db
     .select({
       apiKey: users.apiKey,
@@ -36,20 +59,6 @@ export async function POST(
       },
       { status: 400 }
     )
-  }
-
-  // Get the post and its metadata
-  const [post] = await db
-    .select({
-      id: posts.id,
-      metadata: posts.metadata,
-    })
-    .from(posts)
-    .where(eq(posts.id, postId))
-    .limit(1)
-
-  if (!post) {
-    return NextResponse.json({ error: "Post not found" }, { status: 404 })
   }
 
   const metadata = post.metadata as Record<string, unknown> | null

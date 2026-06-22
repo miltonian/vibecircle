@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { updatePresence } from "@/lib/db/queries"
+import { updatePresence, isCircleMember } from "@/lib/db/queries"
 import { getAuthUserId } from "@/lib/api-auth"
 
 const VALID_STATUSES = ["building", "online", "away"] as const
@@ -31,6 +31,14 @@ export async function PUT(request: Request) {
     return NextResponse.json(
       { error: `status must be one of: ${VALID_STATUSES.join(", ")}` },
       { status: 400 }
+    )
+  }
+
+  // Only members may publish presence into a circle.
+  if (!(await isCircleMember(circleId, userId))) {
+    return NextResponse.json(
+      { error: "You are not a member of this circle" },
+      { status: 403 }
     )
   }
 

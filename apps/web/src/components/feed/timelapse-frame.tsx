@@ -6,6 +6,14 @@ interface TimelapseFrameProps {
   frame: TimelapseFrame
 }
 
+/** First non-empty line of a post body, trimmed to a frame-friendly length. */
+function firstLine(body: string | null): string | null {
+  if (!body) return null
+  const line = body.split("\n").map((l) => l.trim()).find(Boolean)
+  if (!line) return null
+  return line.length > 140 ? line.slice(0, 137) + "…" : line
+}
+
 export function TimelapseFrameView({ frame }: TimelapseFrameProps) {
   const firstImage = (frame.media ?? []).find((m) => m.type === "image")
 
@@ -34,7 +42,7 @@ export function TimelapseFrameView({ frame }: TimelapseFrameProps) {
         /* Text-only frame */
         <div className="flex w-full max-w-xl flex-col items-center justify-center rounded-2xl border border-border-dim bg-bg-card px-8 py-16 text-center">
           <p className="font-display text-xl font-bold text-text-primary sm:text-2xl">
-            {frame.headline ?? "Update"}
+            {frame.headline ?? firstLine(frame.body) ?? "Update"}
           </p>
           {frame.type && (
             <span className="mt-3 text-xs text-text-muted">

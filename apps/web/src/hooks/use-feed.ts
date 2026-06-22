@@ -50,6 +50,8 @@ export interface FeedPost {
   createdAt: string
   author: PostAuthor
   reactionCounts: Record<string, number>
+  /** Emojis the current viewer reacted with — used to highlight own reactions. */
+  viewerReactions: string[]
   commentCount: number
 }
 

@@ -10,6 +10,7 @@ const fetcher = (url: string) =>
 export interface TimelapseFrame {
   postId: string
   headline: string | null
+  body: string | null
   media: PostMedia[] | null
   type: string
   createdAt: string
